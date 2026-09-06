@@ -1,0 +1,45 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Unity generated IDE/project files
+.vs/
+.idea/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+
+# Build and test output
+TestResults/
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Addressables/cache artifacts
+ServerData/
+AddressableAssetsData/*/*/*.bin*
+
+# Crash reports and profiling captures
+sysinfo.txt
+*.stacktrace
+*.raw
