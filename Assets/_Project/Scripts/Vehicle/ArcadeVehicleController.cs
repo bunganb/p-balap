@@ -12,6 +12,10 @@ namespace PBalap.Vehicle
         [SerializeField] private float steering = 90f;
         [SerializeField] private float friction = 4f;
         [SerializeField] private float brakeStrength = 30f;
+        [SerializeField] private float driftFriction = 0.75f;
+        [SerializeField] private float driftSteeringMultiplier = 1.35f;
+        [SerializeField] private float driftBoostMultiplier = 2f;
+        [SerializeField] private float driftBoostDuration = 1.5f;
 
         [Header("References")]
         [SerializeField] private Rigidbody vehicleRigidbody;
@@ -43,6 +47,9 @@ namespace PBalap.Vehicle
         private Vector3 cameraPositionVelocity;
         private float cameraYaw;
         private float cameraYawVelocity;
+        private bool driftArmed;
+        private bool isDrifting;
+        private float driftBoostTimer;
 
         public float Acceleration => acceleration;
         public float MaxSpeed => maxSpeed;
@@ -93,6 +100,26 @@ namespace PBalap.Vehicle
                 brakeInput = keyboard.spaceKey.isPressed;
             }
 
+            if (Mathf.Abs(steeringInput) > 0.01f && !brakeInput)
+            {
+                driftArmed = true;
+            }
+
+            bool wasDrifting = isDrifting;
+            isDrifting = driftArmed && brakeInput && Mathf.Abs(steeringInput) > 0.01f;
+            if (Mathf.Abs(steeringInput) <= 0.01f)
+            {
+                driftArmed = false;
+                isDrifting = false;
+            }
+
+            if (wasDrifting && !isDrifting)
+            {
+                driftBoostTimer = driftBoostDuration;
+            }
+
+            driftBoostTimer = Mathf.Max(0f, driftBoostTimer - Time.deltaTime);
+
             UpdateWheelVisuals();
         }
 
@@ -112,13 +139,19 @@ namespace PBalap.Vehicle
             Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
             float targetSpeed = brakeInput ? 0f : maxSpeed;
             float speedDifference = targetSpeed - localVelocity.z;
-            float forceLimit = brakeInput ? brakeStrength : acceleration;
-            float accelerationForce = Mathf.Clamp(speedDifference * acceleration, -forceLimit, forceLimit);
+            float accelerationMultiplier = driftBoostTimer > 0f ? driftBoostMultiplier : 1f;
+            float currentAcceleration = acceleration * accelerationMultiplier;
+            float forceLimit = brakeInput ? brakeStrength : currentAcceleration;
+            float accelerationForce = Mathf.Clamp(
+                speedDifference * currentAcceleration,
+                -forceLimit,
+                forceLimit);
 
             vehicleRigidbody.AddForce(transform.forward * accelerationForce, ForceMode.Acceleration);
 
             Vector3 sidewaysVelocity = transform.right * localVelocity.x;
-            vehicleRigidbody.AddForce(-sidewaysVelocity * friction, ForceMode.Acceleration);
+            float currentFriction = isDrifting ? driftFriction : friction;
+            vehicleRigidbody.AddForce(-sidewaysVelocity * currentFriction, ForceMode.Acceleration);
 
             Vector3 planarVelocity = Vector3.ProjectOnPlane(vehicleRigidbody.linearVelocity, Vector3.up);
             if (planarVelocity.magnitude > maxSpeed)
@@ -133,7 +166,9 @@ namespace PBalap.Vehicle
             float forwardSpeed = Vector3.Dot(vehicleRigidbody.linearVelocity, transform.forward);
             float speedFactor = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / maxSpeed);
             float reverseFactor = forwardSpeed < 0f ? -1f : 1f;
-            float turnAmount = steeringInput * steering * speedFactor * reverseFactor * Time.fixedDeltaTime;
+            float steeringMultiplier = isDrifting ? driftSteeringMultiplier : 1f;
+            float turnAmount = steeringInput * steering * steeringMultiplier
+                * speedFactor * reverseFactor * Time.fixedDeltaTime;
 
             vehicleRigidbody.MoveRotation(vehicleRigidbody.rotation * Quaternion.Euler(0f, turnAmount, 0f));
         }
@@ -195,6 +230,13 @@ namespace PBalap.Vehicle
                 desiredPosition,
                 ref cameraPositionVelocity,
                 positionSmoothTime);
+
+            Vector3 cameraDisplacement = followTransform.position - transform.position;
+            if (cameraDisplacement.sqrMagnitude > 0.001f)
+            {
+                followTransform.position = transform.position
+                    + cameraDisplacement.normalized * cameraOffset.magnitude;
+            }
 
             Vector3 lookDirection = transform.position + Vector3.up * cameraLookHeight - followTransform.position;
             if (lookDirection.sqrMagnitude > 0.001f)

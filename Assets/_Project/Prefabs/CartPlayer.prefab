@@ -297,6 +297,10 @@ MonoBehaviour:
   steering: 1000
   friction: 15
   brakeStrength: 10
+  driftFriction: 0.75
+  driftSteeringMultiplier: 1.35
+  driftBoostMultiplier: 2
+  driftBoostDuration: 1.5
   vehicleRigidbody: {fileID: 3644149740565936743}
   frontLeftVisual: {fileID: 412496368876221275}
   frontRightVisual: {fileID: 6424997845792744465}
@@ -309,6 +313,7 @@ MonoBehaviour:
   cameraOffset: {x: 0, y: 2, z: -2.5}
   cameraPositionSmoothing: 8
   cameraRotationSmoothing: 10
+  cameraRotationDelay: 0.25
   cameraLookHeight: 1
 --- !u!1 &9028681150728702177
 GameObject:

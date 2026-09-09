@@ -238,7 +238,7 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: -8258264556814611030, guid: a80b9925ea1b8f64a9097381956232fe, type: 3}
---- !u!1001 &464370145
+--- !u!1001 &388828169
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -246,33 +246,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5004514833349580930, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
-      propertyPath: maxSpeed
-      value: 250
-      objectReference: {fileID: 0}
-    - target: {fileID: 5004514833349580930, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
-      propertyPath: brakeStrength
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5004514833349580930, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
-      propertyPath: cameraPositionSmoothing
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 5004514833349580930, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
-      propertyPath: cameraRotationSmoothing
-      value: 1000
-      objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 29.658709
+      value: 28.383673
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 11.456429
+      value: 9.67175
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 16.028818
+      value: 45.468124
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -280,15 +264,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -300,14 +284,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6141338612066588340, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6534368988373211177, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6534368988373211177, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
-      propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8221354507439611581, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
@@ -337,7 +313,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!81 &597614400
 AudioListener:
   m_ObjectHideFlags: 0
@@ -662,7 +638,7 @@ PrefabInstance:
     - target: {fileID: -5136345690908925089, guid: a80b9925ea1b8f64a9097381956232fe, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 41fbedd559017674089eb182a9a9ee75, type: 2}
+      objectReference: {fileID: 2100000, guid: de12f1080d1e7414ba60b87f9aa894df, type: 2}
     - target: {fileID: 919132149155446097, guid: a80b9925ea1b8f64a9097381956232fe, type: 3}
       propertyPath: m_Name
       value: Taas+circuit
@@ -770,4 +746,4 @@ SceneRoots:
   - {fileID: 750169306}
   - {fileID: 1315043638}
   - {fileID: 1129689568}
-  - {fileID: 464370145}
+  - {fileID: 388828169}
