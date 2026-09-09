@@ -179,4 +179,3 @@ Sesudah Player Prefab dipasang, ulangi test sambil memastikan spawn, ownership, 
 - Jangan commit `Library`, `Temp`, `Logs`, atau build output.
 - Pisahkan script logic dari visual prefab agar pekerjaan lima anggota dapat di-merge lebih aman.
 - Setiap fitur network wajib diuji minimal dengan satu Host dan satu Client build terpisah.
-
