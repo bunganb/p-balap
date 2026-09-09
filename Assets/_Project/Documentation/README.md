@@ -1,5 +1,7 @@
 # Documentation
 
+Panduan utama networking untuk seluruh tim berada di [`Docs/NETWORKING.md`](../../../Docs/NETWORKING.md).
+
 Keep short, actionable notes here:
 
 - `architecture.md` - Netcode ownership and vehicle data flow.
