@@ -134,15 +134,26 @@ namespace PBalap.Vehicle
         private void ApplyArcadeMovement()
         {
             Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
-            float targetSpeed = brakeInput ? 0f : throttleInput * maxSpeed;
+            bool isBraking = brakeInput && !isDrifting;
+            bool isTurning = Mathf.Abs(steeringInput) > 0.01f;
+            float targetSpeed = isBraking ? 0f : throttleInput * maxSpeed;
             float speedDifference = targetSpeed - localVelocity.z;
+            bool applyTurnOrDriftReduction = isDrifting || (isTurning && !brakeInput);
+            if (applyTurnOrDriftReduction && Mathf.Abs(localVelocity.z) > 0.01f)
+            {
+                speedDifference -= Mathf.Sign(localVelocity.z)
+                    / Mathf.Max(brakeStrength, 0.01f);
+            }
+
             float accelerationMultiplier = driftBoostTimer > 0f ? driftBoostMultiplier : 1f;
             float currentAcceleration = acceleration * accelerationMultiplier;
-            float forceLimit = brakeInput ? brakeStrength : currentAcceleration;
-            float accelerationForce = Mathf.Clamp(
-                speedDifference * currentAcceleration,
-                -forceLimit,
-                forceLimit);
+            float forceLimit = isBraking ? brakeStrength : currentAcceleration;
+            float maximumSpeedChange = forceLimit * Time.fixedDeltaTime;
+            float speedChange = Mathf.Clamp(
+                speedDifference,
+                -maximumSpeedChange,
+                maximumSpeedChange);
+            float accelerationForce = speedChange / Time.fixedDeltaTime;
 
             Vector3 flatForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
             vehicleRigidbody.AddForce(flatForward * accelerationForce, ForceMode.Acceleration);
