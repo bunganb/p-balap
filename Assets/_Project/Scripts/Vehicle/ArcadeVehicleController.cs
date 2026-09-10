@@ -32,21 +32,16 @@ namespace PBalap.Vehicle
         [SerializeField] private Camera vehicleCamera;
         [SerializeField] private Transform cameraRig;
         [SerializeField] private Vector3 cameraOffset = new Vector3(0f, 4f, -7f);
-        [SerializeField] private float cameraPositionSmoothing = 8f;
-        [SerializeField] private float cameraRotationSmoothing = 10f;
-        [SerializeField] private float cameraRotationDelay = 0.25f;
         [SerializeField] private float cameraLookHeight = 1f;
 
         private float steeringInput;
+        private float throttleInput;
         private bool brakeInput;
         private float wheelSpinAngle;
         private Quaternion frontLeftInitialRotation;
         private Quaternion frontRightInitialRotation;
         private Quaternion rearLeftInitialRotation;
         private Quaternion rearRightInitialRotation;
-        private Vector3 cameraPositionVelocity;
-        private float cameraYaw;
-        private float cameraYawVelocity;
         private bool driftArmed;
         private bool isDrifting;
         private float driftBoostTimer;
@@ -67,6 +62,8 @@ namespace PBalap.Vehicle
             {
                 vehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
                 vehicleRigidbody.centerOfMass = new Vector3(0f, -0.35f, 0f);
+                vehicleRigidbody.constraints |= RigidbodyConstraints.FreezeRotationX
+                    | RigidbodyConstraints.FreezeRotationZ;
             }
 
             if (cameraRig == null && vehicleCamera != null)
@@ -79,8 +76,6 @@ namespace PBalap.Vehicle
                 cameraRig.SetParent(null, true);
             }
 
-            cameraYaw = transform.eulerAngles.y;
-
             frontLeftInitialRotation = GetInitialWheelRotation(frontLeftVisual);
             frontRightInitialRotation = GetInitialWheelRotation(frontRightVisual);
             rearLeftInitialRotation = GetInitialWheelRotation(rearLeftVisual);
@@ -91,10 +86,12 @@ namespace PBalap.Vehicle
         {
             Keyboard keyboard = Keyboard.current;
             steeringInput = 0f;
+            throttleInput = 0f;
             brakeInput = false;
 
             if (keyboard != null)
             {
+                throttleInput = keyboard.sKey.isPressed ? -1f : 1f;
                 steeringInput = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
                 brakeInput = keyboard.spaceKey.isPressed;
@@ -137,7 +134,7 @@ namespace PBalap.Vehicle
         private void ApplyArcadeMovement()
         {
             Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
-            float targetSpeed = brakeInput ? 0f : maxSpeed;
+            float targetSpeed = brakeInput ? 0f : throttleInput * maxSpeed;
             float speedDifference = targetSpeed - localVelocity.z;
             float accelerationMultiplier = driftBoostTimer > 0f ? driftBoostMultiplier : 1f;
             float currentAcceleration = acceleration * accelerationMultiplier;
@@ -147,7 +144,8 @@ namespace PBalap.Vehicle
                 -forceLimit,
                 forceLimit);
 
-            vehicleRigidbody.AddForce(transform.forward * accelerationForce, ForceMode.Acceleration);
+            Vector3 flatForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            vehicleRigidbody.AddForce(flatForward * accelerationForce, ForceMode.Acceleration);
 
             Vector3 sidewaysVelocity = transform.right * localVelocity.x;
             float currentFriction = isDrifting ? driftFriction : friction;
@@ -214,35 +212,15 @@ namespace PBalap.Vehicle
                 ? cameraRig
                 : vehicleCamera.transform;
 
-            float cameraYawSmoothTime = Mathf.Max(cameraRotationDelay, 0.01f);
-            cameraYaw = Mathf.SmoothDampAngle(
-                cameraYaw,
-                transform.eulerAngles.y,
-                ref cameraYawVelocity,
-                cameraYawSmoothTime);
-
-            Quaternion cameraYawRotation = Quaternion.Euler(0f, cameraYaw, 0f);
+            Quaternion cameraYawRotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
             Vector3 desiredPosition = transform.position + cameraYawRotation * cameraOffset;
-            float positionSmoothTime = 1f / Mathf.Max(cameraPositionSmoothing, 0.01f);
-            float rotationBlend = 1f - Mathf.Exp(-cameraRotationSmoothing * Time.deltaTime);
-            followTransform.position = Vector3.SmoothDamp(
-                followTransform.position,
-                desiredPosition,
-                ref cameraPositionVelocity,
-                positionSmoothTime);
-
-            Vector3 cameraDisplacement = followTransform.position - transform.position;
-            if (cameraDisplacement.sqrMagnitude > 0.001f)
-            {
-                followTransform.position = transform.position
-                    + cameraDisplacement.normalized * cameraOffset.magnitude;
-            }
+            followTransform.position = desiredPosition;
 
             Vector3 lookDirection = transform.position + Vector3.up * cameraLookHeight - followTransform.position;
             if (lookDirection.sqrMagnitude > 0.001f)
             {
                 Quaternion desiredRotation = Quaternion.LookRotation(lookDirection, Vector3.up);
-                followTransform.rotation = Quaternion.Slerp(followTransform.rotation, desiredRotation, rotationBlend);
+                followTransform.rotation = desiredRotation;
             }
         }
     }

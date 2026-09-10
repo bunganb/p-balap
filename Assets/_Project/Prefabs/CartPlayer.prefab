@@ -151,6 +151,7 @@ GameObject:
   - component: {fileID: 8016411656909819523}
   - component: {fileID: 3644149740565936743}
   - component: {fileID: 5004514833349580930}
+  - component: {fileID: 6683534680532996116}
   m_Layer: 0
   m_Name: CartPlayer
   m_TagString: Untagged
@@ -249,7 +250,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1.5}
   m_Center: {x: 0, y: 0.5, z: 0.1}
@@ -294,7 +295,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PBalap.Vehicle.ArcadeVehicleController
   acceleration: 15
   maxSpeed: 100
-  steering: 1000
+  steering: 400
   friction: 15
   brakeStrength: 10
   driftFriction: 0.75
@@ -310,11 +311,31 @@ MonoBehaviour:
   wheelRadius: 0.35
   vehicleCamera: {fileID: 6604559795808732885}
   cameraRig: {fileID: 6976714027452177571}
-  cameraOffset: {x: 0, y: 2, z: -2.5}
-  cameraPositionSmoothing: 8
-  cameraRotationSmoothing: 10
-  cameraRotationDelay: 0.25
+  cameraOffset: {x: 0, y: 2.5, z: -4}
   cameraLookHeight: 1
+--- !u!136 &6683534680532996116
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8221354507439611581}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 2
+  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!1 &9028681150728702177
 GameObject:
   m_ObjectHideFlags: 0
