@@ -19,6 +19,7 @@ namespace PBalap.Network
         Hosting,
         Connecting,
         Joined,
+        Disconnecting,
         Failed
     }
 
@@ -46,15 +47,24 @@ namespace PBalap.Network
 
         private bool operationInProgress;
         private bool joinedAsClient;
+        private bool hostingSession;
+        private bool intentionalShutdown;
         private bool applicationQuitting;
         private string joinCode = string.Empty;
         private string joinCodeInput = string.Empty;
         private string lastError = string.Empty;
+        private string latestNotice = "Belum ada aktivitas network.";
         private NetworkSessionState state = NetworkSessionState.Disconnected;
         private TaskCompletionSource<bool> clientConnectionCompletion;
+        private readonly List<ulong> connectedClientIds = new List<ulong>();
+        private readonly List<string> activityMessages = new List<string>();
 
         public event Action<NetworkSessionState> StateChanged;
         public event Action<string> JoinCodeChanged;
+        public event Action<ulong> ClientConnected;
+        public event Action<ulong> ClientDisconnected;
+        public event Action<string> NoticeChanged;
+        public event Action ReturnToMenuRequested;
 
         public NetworkSessionState State => state;
         public string JoinCode => joinCode;
@@ -64,6 +74,9 @@ namespace PBalap.Network
             set => joinCodeInput = NormalizeJoinCode(value);
         }
         public string LastError => lastError;
+        public string LatestNotice => latestNotice;
+        public IReadOnlyList<ulong> ConnectedClientIds => connectedClientIds;
+        public IReadOnlyList<string> ActivityMessages => activityMessages;
         public bool IsHost => networkManager != null && networkManager.IsHost;
         public bool IsConnected => networkManager != null && networkManager.IsListening;
         public int ConnectedPlayerCount => networkManager != null && networkManager.IsListening
@@ -146,8 +159,13 @@ namespace PBalap.Network
             }
 
             operationInProgress = true;
+            hostingSession = false;
+            joinedAsClient = false;
             lastError = string.Empty;
+            connectedClientIds.Clear();
+            activityMessages.Clear();
             SetJoinCode(string.Empty);
+            SetNotice("Membuat room Relay...");
 
             try
             {
@@ -173,19 +191,24 @@ namespace PBalap.Network
                     null,
                     endpoint.Secure);
 
+                // StartHost invokes the local connected callback synchronously.
+                hostingSession = true;
                 if (!networkManager.StartHost())
                 {
+                    hostingSession = false;
                     SetFailure("Relay berhasil dibuat, tetapi NetworkManager gagal menjalankan Host.");
                     return false;
                 }
 
                 SetJoinCode(code);
                 SetState(NetworkSessionState.Hosting);
+                SetNotice($"Room berhasil dibuat. Menunggu Client (1/{maxPlayers}).");
                 Debug.Log($"[Network] Host aktif. Join code: {code}");
                 return true;
             }
             catch (Exception exception)
             {
+                hostingSession = false;
                 SetFailure($"Gagal membuat room: {exception.Message}");
                 Debug.LogException(exception);
                 return false;
@@ -223,9 +246,13 @@ namespace PBalap.Network
             }
 
             operationInProgress = true;
+            hostingSession = false;
             joinedAsClient = false;
             lastError = string.Empty;
+            connectedClientIds.Clear();
+            activityMessages.Clear();
             JoinCodeInput = normalizedCode;
+            SetNotice($"Mencari room {normalizedCode}...");
 
             try
             {
@@ -280,6 +307,7 @@ namespace PBalap.Network
                 joinedAsClient = true;
                 SetJoinCode(normalizedCode);
                 SetState(NetworkSessionState.Joined);
+                SetNotice("Berhasil terhubung ke Host.");
                 Debug.Log($"[Network] Client bergabung ke room {normalizedCode}.");
                 return true;
             }
@@ -302,6 +330,54 @@ namespace PBalap.Network
             }
         }
 
+        public bool LeaveRoom()
+        {
+            if (networkManager == null || !networkManager.IsListening || hostingSession)
+            {
+                SetFailure("Tidak ada koneksi Client yang dapat ditinggalkan.");
+                return false;
+            }
+
+            ShutdownSession("Anda keluar dari room.");
+            return true;
+        }
+
+        public bool CloseRoom()
+        {
+            if (networkManager == null || !networkManager.IsListening || !hostingSession)
+            {
+                SetFailure("Tidak ada room Host yang dapat ditutup.");
+                return false;
+            }
+
+            ShutdownSession("Room ditutup. Anda dapat membuat room baru.");
+            return true;
+        }
+
+        private void ShutdownSession(string notice)
+        {
+            intentionalShutdown = true;
+            operationInProgress = false;
+            SetState(NetworkSessionState.Disconnecting);
+            clientConnectionCompletion?.TrySetResult(false);
+
+            try
+            {
+                networkManager.Shutdown();
+            }
+            finally
+            {
+                connectedClientIds.Clear();
+                joinedAsClient = false;
+                hostingSession = false;
+                lastError = string.Empty;
+                SetJoinCode(string.Empty);
+                SetState(NetworkSessionState.Disconnected);
+                SetNotice(notice);
+                intentionalShutdown = false;
+            }
+        }
+
         private async void CreateRoomFromUi()
         {
             await CreateRoomAsync();
@@ -314,37 +390,62 @@ namespace PBalap.Network
 
         private void HandleClientConnected(ulong clientId)
         {
+            if (!connectedClientIds.Contains(clientId))
+            {
+                connectedClientIds.Add(clientId);
+            }
+
             if (networkManager != null
                 && clientId == networkManager.LocalClientId
                 && networkManager.IsClient
-                && !networkManager.IsHost)
+                && !hostingSession)
             {
                 clientConnectionCompletion?.TrySetResult(true);
+                SetNotice("Koneksi ke Host dikonfirmasi oleh NGO.");
+            }
+            else if (hostingSession && networkManager != null && clientId != networkManager.LocalClientId)
+            {
+                SetNotice($"Client {clientId} bergabung. Players: {ConnectedPlayerCount}/{maxPlayers}.");
+            }
+            else if (hostingSession)
+            {
+                SetNotice("Host aktif dan siap menerima Client.");
             }
 
+            ClientConnected?.Invoke(clientId);
             Debug.Log($"[Network] Client connected: {clientId}. Players: {ConnectedPlayerCount}/{maxPlayers}");
         }
 
         private void HandleClientDisconnected(ulong clientId)
         {
+            connectedClientIds.Remove(clientId);
+
             bool localClientDisconnected = networkManager != null
                 && clientId == networkManager.LocalClientId
-                && !networkManager.IsHost;
+                && !hostingSession;
 
             if (localClientDisconnected)
             {
                 clientConnectionCompletion?.TrySetResult(false);
 
-                if (joinedAsClient && !applicationQuitting)
+                if (joinedAsClient && !intentionalShutdown && !applicationQuitting)
                 {
                     joinedAsClient = false;
+                    SetJoinCode(string.Empty);
                     string reason = networkManager.DisconnectReason;
                     SetFailure(string.IsNullOrWhiteSpace(reason)
                         ? "Koneksi terputus karena Host keluar atau room ditutup."
                         : $"Koneksi terputus: {reason}");
+                    SetNotice("Host keluar. Kembali ke menu Network.");
+                    ReturnToMenuRequested?.Invoke();
                 }
             }
+            else if (hostingSession && !intentionalShutdown && !applicationQuitting)
+            {
+                SetNotice($"Client {clientId} keluar. Players: {ConnectedPlayerCount}/{maxPlayers}.");
+            }
 
+            ClientDisconnected?.Invoke(clientId);
             Debug.Log($"[Network] Client disconnected: {clientId}. Players: {ConnectedPlayerCount}/{maxPlayers}");
         }
 
@@ -425,6 +526,21 @@ namespace PBalap.Network
             JoinCodeChanged?.Invoke(joinCode);
         }
 
+        private void SetNotice(string message)
+        {
+            latestNotice = message ?? string.Empty;
+            string timestampedMessage = $"[{DateTime.Now:HH:mm:ss}] {latestNotice}";
+            activityMessages.Add(timestampedMessage);
+
+            const int maximumActivityMessages = 5;
+            if (activityMessages.Count > maximumActivityMessages)
+            {
+                activityMessages.RemoveAt(0);
+            }
+
+            NoticeChanged?.Invoke(latestNotice);
+        }
+
         private void SetFailure(string message)
         {
             lastError = message;
@@ -439,9 +555,10 @@ namespace PBalap.Network
                 return;
             }
 
-            GUILayout.BeginArea(new Rect(20f, 20f, 430f, 340f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(20f, 20f, 470f, 540f), GUI.skin.box);
             GUILayout.Label("P, Balap! - Network Room");
             GUILayout.Label($"Status: {state}");
+            GUILayout.Label($"Info: {latestNotice}");
 
             if (!IsConnected && !operationInProgress)
             {
@@ -474,17 +591,47 @@ namespace PBalap.Network
                 {
                     GUIUtility.systemCopyBuffer = joinCode;
                 }
+
+                GUILayout.Space(8f);
+                GUILayout.Label("Daftar koneksi yang diketahui Host:");
+                foreach (ulong clientId in connectedClientIds)
+                {
+                    string role = networkManager != null && clientId == networkManager.LocalClientId
+                        ? "Host (local)"
+                        : $"Client {clientId}";
+                    GUILayout.Label($"- {role}");
+                }
+
+                if (GUILayout.Button("Close Room (Host)", GUILayout.Height(32f)))
+                {
+                    CloseRoom();
+                }
             }
 
             if (state == NetworkSessionState.Joined)
             {
                 GUILayout.Label($"Terhubung sebagai Client ke room: {joinCode}");
                 GUILayout.Label("Menunggu integrasi Player Prefab pada issue berikutnya.");
+
+                if (GUILayout.Button("Leave Room (Client)", GUILayout.Height(32f)))
+                {
+                    LeaveRoom();
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(lastError))
             {
                 GUILayout.Label(lastError);
+            }
+
+            if (activityMessages.Count > 0)
+            {
+                GUILayout.Space(10f);
+                GUILayout.Label("Aktivitas terbaru:");
+                foreach (string activityMessage in activityMessages)
+                {
+                    GUILayout.Label(activityMessage);
+                }
             }
 
             GUILayout.EndArea();
