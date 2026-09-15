@@ -2,11 +2,16 @@ using UnityEngine;
 
 namespace PBalap.Items
 {
-    /// <summary>Server-validated pickup and one-slot inventory integration point.</summary>
-    public sealed class ItemPickup : MonoBehaviour
+    public class PalmOilPickup : MonoBehaviour
     {
-        [SerializeField] private float cooldownSeconds = 3f;
+        private void OnTriggerEnter(Collider other)
+        {
+            if (other.CompareTag("Player"))
+            {
+                Debug.Log("Minyak Sawit berhasil diambil!");
 
-        public float CooldownSeconds => cooldownSeconds;
+                gameObject.SetActive(false);
+            }
+        }
     }
 }

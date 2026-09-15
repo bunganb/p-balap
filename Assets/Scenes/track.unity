@@ -189,6 +189,9 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 194601649}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 194601648}
   m_SourcePrefab: {fileID: 100100000, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
 --- !u!1 &194601647 stripped
@@ -196,8 +199,20 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
   m_PrefabInstance: {fileID: 194601646}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &194601648
-BoxCollider:
+--- !u!114 &194601648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 194601647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 692f0203ef870184cbbd2c0a1df704b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PBalap.Items.ItemPickup
+--- !u!135 &194601649
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -215,7 +230,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.17999999, y: 0.21105026, z: 0.20285055}
+  m_Radius: 0.10552513
   m_Center: {x: 0, y: 0.10552513, z: -0.011425283}
 --- !u!1 &410231937
 GameObject:
@@ -387,7 +402,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 230fdb17f7df94443a5046fc88d98e8d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1967998712}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 230fdb17f7df94443a5046fc88d98e8d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1967998711}
   m_SourcePrefab: {fileID: 100100000, guid: 230fdb17f7df94443a5046fc88d98e8d, type: 3}
 --- !u!1 &570592463
 GameObject:
@@ -904,6 +925,44 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.52060854, y: 0.039333265, z: 0.0038796419}
   m_Center: {x: 0.061806962, y: 0.0011798161, z: -0.0000000065774644}
+--- !u!1 &1967998709 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 230fdb17f7df94443a5046fc88d98e8d, type: 3}
+  m_PrefabInstance: {fileID: 525211748}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1967998711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1967998709}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 692f0203ef870184cbbd2c0a1df704b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PBalap.Items.ItemPickup
+--- !u!65 &1967998712
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1967998709}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
