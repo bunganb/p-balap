@@ -20,6 +20,12 @@ namespace PBalap.Vehicle
         [Header("References")]
         [SerializeField] private Rigidbody vehicleRigidbody;
 
+        [Header("Vehicle prefab types")]
+        [SerializeField] private GameObject[] vehiclePrefabs;
+        [SerializeField] private int selectedVehiclePrefab;
+        [SerializeField] private Transform vehicleVisualParent;
+        [SerializeField] private GameObject currentVehicleVisual;
+
         [Header("Wheel visuals")]
         [SerializeField] private GameObject frontLeftVisual;
         [SerializeField] private GameObject frontRightVisual;
@@ -54,6 +60,9 @@ namespace PBalap.Vehicle
         public float Steering => steering;
         public float Friction => friction;
 
+        public GameObject[] VehiclePrefabs => vehiclePrefabs;
+        public int SelectedVehiclePrefab => selectedVehiclePrefab;
+
         private void Awake()
         {
             if (vehicleRigidbody == null)
@@ -79,10 +88,63 @@ namespace PBalap.Vehicle
                 cameraRig.SetParent(null, true);
             }
 
+            ReplaceVehicleVisual();
+            BindWheelVisuals();
             frontLeftInitialRotation = GetInitialWheelRotation(frontLeftVisual);
             frontRightInitialRotation = GetInitialWheelRotation(frontRightVisual);
             rearLeftInitialRotation = GetInitialWheelRotation(rearLeftVisual);
             rearRightInitialRotation = GetInitialWheelRotation(rearRightVisual);
+        }
+
+        private void ReplaceVehicleVisual()
+        {
+            if (vehiclePrefabs == null || vehiclePrefabs.Length == 0)
+            {
+                return;
+            }
+
+            int prefabIndex = Mathf.Clamp(selectedVehiclePrefab, 0, vehiclePrefabs.Length - 1);
+            GameObject selectedPrefab = vehiclePrefabs[prefabIndex];
+            if (selectedPrefab == null)
+            {
+                return;
+            }
+
+            Transform parent = vehicleVisualParent != null ? vehicleVisualParent : transform;
+            if (currentVehicleVisual != null)
+            {
+                Destroy(currentVehicleVisual);
+            }
+
+            currentVehicleVisual = Instantiate(selectedPrefab, parent);
+            currentVehicleVisual.name = selectedPrefab.name;
+
+            frontLeftVisual = null;
+            frontRightVisual = null;
+            rearLeftVisual = null;
+            rearRightVisual = null;
+        }
+
+        private void BindWheelVisuals()
+        {
+            frontLeftVisual ??= FindChildByName("wheel-front-left");
+            frontRightVisual ??= FindChildByName("wheel-front-right");
+            rearLeftVisual ??= FindChildByName("wheel-back-left");
+            rearRightVisual ??= FindChildByName("wheel-back-right");
+        }
+
+        private GameObject FindChildByName(string childName)
+        {
+            Transform[] children = GetComponentsInChildren<Transform>(true);
+            foreach (Transform child in children)
+            {
+                if (child.name.Equals(childName, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return child.gameObject;
+                }
+            }
+
+            return null;
         }
 
         private void Update()
