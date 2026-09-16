@@ -84,6 +84,14 @@ namespace PBalap.Vehicle
                 cameraRig = vehicleCamera.transform.parent;
             }
 
+            // Keep the follow rig in world space. If it remains parented to the
+            // Rigidbody kart, the kart rotation is inherited before LateUpdate
+            // applies its own look rotation and the camera can pitch downward.
+            if (cameraRig != null && cameraRig != transform && cameraRig.IsChildOf(transform))
+            {
+                cameraRig.SetParent(null, true);
+            }
+
             ReplaceVehicleVisual();
             BindWheelVisuals();
             frontLeftInitialRotation = GetInitialWheelRotation(frontLeftVisual);
