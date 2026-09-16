@@ -576,6 +576,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: CartPlayer
       objectReference: {fileID: 0}
+    - target: {fileID: 9100000000000000001, guid: 72893d2f730b61e4fac62beddb59967e, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1573595933
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
