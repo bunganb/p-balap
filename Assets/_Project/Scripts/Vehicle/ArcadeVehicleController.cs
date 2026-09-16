@@ -159,8 +159,9 @@ namespace PBalap.Vehicle
 
             if (keyboard != null)
             {
-                throttleInput = (keyboard.wKey.isPressed ? 1f : 0f)
-                    - (keyboard.sKey.isPressed ? 1f : 0f);
+                // Match the movement used by the Michael scene: the kart moves
+                // forward automatically, while holding S switches to reverse.
+                throttleInput = keyboard.sKey.isPressed ? -1f : 1f;
                 steeringInput = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
                 brakeInput = keyboard.spaceKey.isPressed;
