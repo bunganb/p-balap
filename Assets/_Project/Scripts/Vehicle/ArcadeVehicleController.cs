@@ -54,6 +54,7 @@ namespace PBalap.Vehicle
         private bool isDrifting;
         private float driftBoostTimer;
         private Vector3 cameraPositionVelocity;
+        private bool controlEnabled = true;
 
         public float Acceleration => acceleration;
         public float MaxSpeed => maxSpeed;
@@ -81,11 +82,6 @@ namespace PBalap.Vehicle
             if (cameraRig == null && vehicleCamera != null)
             {
                 cameraRig = vehicleCamera.transform.parent;
-            }
-
-            if (cameraRig != null && cameraRig != transform && cameraRig.IsChildOf(transform))
-            {
-                cameraRig.SetParent(null, true);
             }
 
             ReplaceVehicleVisual();
@@ -149,6 +145,13 @@ namespace PBalap.Vehicle
 
         private void Update()
         {
+            if (!controlEnabled)
+            {
+                ResetInputState();
+                UpdateWheelVisuals();
+                return;
+            }
+
             Keyboard keyboard = Keyboard.current;
             steeringInput = 0f;
             throttleInput = 0f;
@@ -156,7 +159,8 @@ namespace PBalap.Vehicle
 
             if (keyboard != null)
             {
-                throttleInput = keyboard.sKey.isPressed ? -1f : 1f;
+                throttleInput = (keyboard.wKey.isPressed ? 1f : 0f)
+                    - (keyboard.sKey.isPressed ? 1f : 0f);
                 steeringInput = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
                 brakeInput = keyboard.spaceKey.isPressed;
@@ -187,7 +191,7 @@ namespace PBalap.Vehicle
 
         private void FixedUpdate()
         {
-            if (vehicleRigidbody == null)
+            if (vehicleRigidbody == null || !controlEnabled)
             {
                 return;
             }
@@ -279,7 +283,7 @@ namespace PBalap.Vehicle
 
         private void LateUpdate()
         {
-            if (vehicleCamera == null)
+            if (vehicleCamera == null || !vehicleCamera.isActiveAndEnabled)
             {
                 return;
             }
@@ -318,6 +322,40 @@ namespace PBalap.Vehicle
                     desiredRotation,
                     rotationSmoothing);
             }
+        }
+
+        public void SetControlEnabled(bool enabled)
+        {
+            controlEnabled = enabled;
+            if (!enabled)
+            {
+                ResetInputState();
+            }
+        }
+
+        public void SetCameraEnabled(bool enabled)
+        {
+            if (vehicleCamera == null)
+            {
+                return;
+            }
+
+            vehicleCamera.enabled = enabled;
+            AudioListener listener = vehicleCamera.GetComponent<AudioListener>();
+            if (listener != null)
+            {
+                listener.enabled = enabled;
+            }
+        }
+
+        private void ResetInputState()
+        {
+            steeringInput = 0f;
+            throttleInput = 0f;
+            brakeInput = false;
+            driftArmed = false;
+            isDrifting = false;
+            driftBoostTimer = 0f;
         }
     }
 }

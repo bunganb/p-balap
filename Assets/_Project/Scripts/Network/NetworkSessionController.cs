@@ -24,8 +24,7 @@ namespace PBalap.Network
     }
 
     /// <summary>
-    /// Creates or joins a Relay room and starts NGO as Host or Client.
-    /// Player-prefab integration is handled by a later issue.
+    /// Creates or joins a Relay room, assigns player spawn slots, and gates race start.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkManager), typeof(UnityTransport))]
@@ -33,6 +32,13 @@ namespace PBalap.Network
     {
         private const int MinimumPlayers = 2;
         private const int ClientConnectTimeoutMilliseconds = 15000;
+        private static readonly Vector3[] SpawnPositions =
+        {
+            new Vector3(-2.84617305f, 0.567728043f, 26.8396702f),
+            new Vector3(-0.170000002f, 0.567728043f, 25.1200008f),
+            new Vector3(-5.38000011f, 0.567728043f, 24.2700005f),
+            new Vector3(-3.25999999f, 0.567728043f, 21.6200008f)
+        };
 
         [Header("Room")]
         [SerializeField, Range(MinimumPlayers, 4)] private int maxPlayers = 4;
@@ -50,6 +56,7 @@ namespace PBalap.Network
         private bool hostingSession;
         private bool intentionalShutdown;
         private bool applicationQuitting;
+        private bool raceStarted;
         private string joinCode = string.Empty;
         private string joinCodeInput = string.Empty;
         private string lastError = string.Empty;
@@ -58,6 +65,7 @@ namespace PBalap.Network
         private TaskCompletionSource<bool> clientConnectionCompletion;
         private readonly List<ulong> connectedClientIds = new List<ulong>();
         private readonly List<string> activityMessages = new List<string>();
+        private readonly Dictionary<ulong, int> spawnSlotByClientId = new Dictionary<ulong, int>();
 
         public event Action<NetworkSessionState> StateChanged;
         public event Action<string> JoinCodeChanged;
@@ -79,6 +87,7 @@ namespace PBalap.Network
         public IReadOnlyList<string> ActivityMessages => activityMessages;
         public bool IsHost => networkManager != null && networkManager.IsHost;
         public bool IsConnected => networkManager != null && networkManager.IsListening;
+        public bool IsRaceStarted => raceStarted;
         public int ConnectedPlayerCount => networkManager != null && networkManager.IsListening
             ? networkManager.ConnectedClients.Count
             : 0;
@@ -93,6 +102,12 @@ namespace PBalap.Network
             if (unityTransport == null)
             {
                 unityTransport = GetComponent<UnityTransport>();
+            }
+
+            if (networkManager != null)
+            {
+                networkManager.NetworkConfig.ConnectionApproval = true;
+                networkManager.ConnectionApprovalCallback = ApproveConnection;
             }
         }
 
@@ -121,6 +136,14 @@ namespace PBalap.Network
         private void OnApplicationQuit()
         {
             applicationQuitting = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (networkManager != null && networkManager.ConnectionApprovalCallback == ApproveConnection)
+            {
+                networkManager.ConnectionApprovalCallback = null;
+            }
         }
 
         public async Task<bool> InitializeServicesAsync()
@@ -163,7 +186,9 @@ namespace PBalap.Network
             joinedAsClient = false;
             lastError = string.Empty;
             connectedClientIds.Clear();
+            spawnSlotByClientId.Clear();
             activityMessages.Clear();
+            raceStarted = false;
             SetJoinCode(string.Empty);
             SetNotice("Membuat room Relay...");
 
@@ -251,6 +276,7 @@ namespace PBalap.Network
             lastError = string.Empty;
             connectedClientIds.Clear();
             activityMessages.Clear();
+            raceStarted = false;
             JoinCodeInput = normalizedCode;
             SetNotice($"Mencari room {normalizedCode}...");
 
@@ -342,6 +368,53 @@ namespace PBalap.Network
             return true;
         }
 
+        public bool StartRace()
+        {
+            if (networkManager == null || !networkManager.IsHost || !hostingSession)
+            {
+                SetNotice("Hanya Host yang dapat memulai balapan.");
+                return false;
+            }
+
+            if (raceStarted)
+            {
+                SetNotice("Balapan sudah dimulai.");
+                return false;
+            }
+
+            if (ConnectedPlayerCount < MinimumPlayers)
+            {
+                SetNotice($"Balapan membutuhkan minimal {MinimumPlayers} pemain.");
+                return false;
+            }
+
+            List<NetworkKartPlayer> playerKarts = new List<NetworkKartPlayer>();
+            foreach (NetworkClient client in networkManager.ConnectedClientsList)
+            {
+                NetworkKartPlayer kart = client.PlayerObject == null
+                    ? null
+                    : client.PlayerObject.GetComponent<NetworkKartPlayer>();
+                if (kart == null)
+                {
+                    SetNotice($"Player object Client {client.ClientId} belum siap sebagai kart network.");
+                    return false;
+                }
+
+                playerKarts.Add(kart);
+            }
+
+            raceStarted = true;
+            lastError = string.Empty;
+            foreach (NetworkKartPlayer kart in playerKarts)
+            {
+                kart.SetCanDriveOnServer(true);
+            }
+
+            SetNotice($"Balapan dimulai untuk {ConnectedPlayerCount} pemain.");
+            Debug.Log($"[Network] Race started by Host with {ConnectedPlayerCount} players.");
+            return true;
+        }
+
         public bool CloseRoom()
         {
             if (networkManager == null || !networkManager.IsListening || !hostingSession)
@@ -368,8 +441,10 @@ namespace PBalap.Network
             finally
             {
                 connectedClientIds.Clear();
+                spawnSlotByClientId.Clear();
                 joinedAsClient = false;
                 hostingSession = false;
+                raceStarted = false;
                 lastError = string.Empty;
                 SetJoinCode(string.Empty);
                 SetState(NetworkSessionState.Disconnected);
@@ -419,6 +494,7 @@ namespace PBalap.Network
         private void HandleClientDisconnected(ulong clientId)
         {
             connectedClientIds.Remove(clientId);
+            spawnSlotByClientId.Remove(clientId);
 
             bool localClientDisconnected = networkManager != null
                 && clientId == networkManager.LocalClientId
@@ -447,6 +523,94 @@ namespace PBalap.Network
 
             ClientDisconnected?.Invoke(clientId);
             Debug.Log($"[Network] Client disconnected: {clientId}. Players: {ConnectedPlayerCount}/{maxPlayers}");
+        }
+
+        private void ApproveConnection(
+            NetworkManager.ConnectionApprovalRequest request,
+            NetworkManager.ConnectionApprovalResponse response)
+        {
+            response.Pending = false;
+            response.CreatePlayerObject = false;
+            response.PlayerPrefabHash = null;
+            response.Position = null;
+            response.Rotation = null;
+
+            if (raceStarted)
+            {
+                response.Approved = false;
+                response.Reason = "Balapan sudah dimulai.";
+                return;
+            }
+
+            int spawnSlot = FindAvailableSpawnSlot();
+            if (spawnSlot < 0 || spawnSlotByClientId.Count >= maxPlayers)
+            {
+                response.Approved = false;
+                response.Reason = "Room sudah penuh.";
+                return;
+            }
+
+            spawnSlotByClientId[request.ClientNetworkId] = spawnSlot;
+            response.Approved = true;
+            response.CreatePlayerObject = true;
+            response.Position = SpawnPositions[spawnSlot];
+            response.Rotation = Quaternion.identity;
+            response.Reason = string.Empty;
+
+            Debug.Log(
+                $"[Network] Approved Client {request.ClientNetworkId} at spawn slot {spawnSlot + 1}: "
+                + $"{SpawnPositions[spawnSlot]}.");
+        }
+
+        private int FindAvailableSpawnSlot()
+        {
+            for (int slot = 0; slot < Mathf.Min(maxPlayers, SpawnPositions.Length); slot++)
+            {
+                if (!spawnSlotByClientId.ContainsValue(slot))
+                {
+                    return slot;
+                }
+            }
+
+            return -1;
+        }
+
+        private bool IsLocalKartAllowedToDrive()
+        {
+            if (networkManager == null
+                || !networkManager.IsListening
+                || networkManager.LocalClient == null
+                || networkManager.LocalClient.PlayerObject == null)
+            {
+                return false;
+            }
+
+            NetworkKartPlayer kart = networkManager.LocalClient.PlayerObject.GetComponent<NetworkKartPlayer>();
+            return kart != null && kart.CanDrive;
+        }
+
+        private void DrawSpawnedKartSnapshots()
+        {
+            if (networkManager == null || !networkManager.IsListening || networkManager.SpawnManager == null)
+            {
+                return;
+            }
+
+            GUILayout.Space(8f);
+            GUILayout.Label("Kart network (posisi snapshot):");
+            foreach (NetworkObject networkObject in networkManager.SpawnManager.SpawnedObjectsList)
+            {
+                if (!networkObject.TryGetComponent(out NetworkKartPlayer kart))
+                {
+                    continue;
+                }
+
+                string role = networkObject.IsOwner ? "local" : "remote";
+                Vector3 position = networkObject.transform.position;
+                GUILayout.Label(
+                    $"- Obj {networkObject.NetworkObjectId} | Owner {networkObject.OwnerClientId} | "
+                    + $"{role} | ({position.x:F2}, {position.y:F2}, {position.z:F2})");
+            }
         }
 
         private RelayServerEndpoint FindRelayEndpoint(List<RelayServerEndpoint> endpoints)
@@ -555,7 +719,7 @@ namespace PBalap.Network
                 return;
             }
 
-            GUILayout.BeginArea(new Rect(20f, 20f, 470f, 540f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(20f, 20f, 560f, 700f), GUI.skin.box);
             GUILayout.Label("P, Balap! - Network Room");
             GUILayout.Label($"Status: {state}");
             GUILayout.Label($"Info: {latestNotice}");
@@ -586,6 +750,7 @@ namespace PBalap.Network
             {
                 GUILayout.Label($"Join Code: {joinCode}");
                 GUILayout.Label($"Players: {ConnectedPlayerCount}/{maxPlayers}");
+                GUILayout.Label($"Race: {(raceStarted ? "Racing" : "Preparing")}");
 
                 if (GUILayout.Button("Copy Join Code"))
                 {
@@ -602,6 +767,24 @@ namespace PBalap.Network
                     GUILayout.Label($"- {role}");
                 }
 
+                if (!raceStarted)
+                {
+                    bool previousGuiEnabled = GUI.enabled;
+                    GUI.enabled = ConnectedPlayerCount >= MinimumPlayers;
+                    if (GUILayout.Button("Start Race (Host)", GUILayout.Height(36f)))
+                    {
+                        StartRace();
+                    }
+
+                    GUI.enabled = previousGuiEnabled;
+                    if (ConnectedPlayerCount < MinimumPlayers)
+                    {
+                        GUILayout.Label($"Menunggu pemain lain. Minimal {MinimumPlayers} pemain.");
+                    }
+                }
+
+                DrawSpawnedKartSnapshots();
+
                 if (GUILayout.Button("Close Room (Host)", GUILayout.Height(32f)))
                 {
                     CloseRoom();
@@ -611,7 +794,10 @@ namespace PBalap.Network
             if (state == NetworkSessionState.Joined)
             {
                 GUILayout.Label($"Terhubung sebagai Client ke room: {joinCode}");
-                GUILayout.Label("Menunggu integrasi Player Prefab pada issue berikutnya.");
+                GUILayout.Label(IsLocalKartAllowedToDrive()
+                    ? "Race: Racing - kart dapat dikendalikan."
+                    : "Race: Preparing - menunggu Host menekan Start Race.");
+                DrawSpawnedKartSnapshots();
 
                 if (GUILayout.Button("Leave Room (Client)", GUILayout.Height(32f)))
                 {
