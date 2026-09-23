@@ -379,7 +379,6 @@ MonoBehaviour:
   cameraRig: {fileID: 6976714027452177571}
   cameraOffset: {x: 0, y: 2.5, z: -4}
   cameraLookHeight: 1
-  cameraPositionSmoothTime: 0.2
   cameraRotationSmoothSpeed: 10
 --- !u!136 &6683534680532996116
 CapsuleCollider:

@@ -39,7 +39,6 @@ namespace PBalap.Vehicle
         [SerializeField] private Transform cameraRig;
         [SerializeField] private Vector3 cameraOffset = new Vector3(0f, 4f, -7f);
         [SerializeField] private float cameraLookHeight = 1f;
-        [SerializeField] private float cameraPositionSmoothTime = 0.2f;
         [SerializeField] private float cameraRotationSmoothSpeed = 10f;
 
         private float steeringInput;
@@ -53,7 +52,6 @@ namespace PBalap.Vehicle
         private bool driftArmed;
         private bool isDrifting;
         private float driftBoostTimer;
-        private Vector3 cameraPositionVelocity;
         private bool controlEnabled = true;
 
         public float Acceleration => acceleration;
@@ -303,22 +301,10 @@ namespace PBalap.Vehicle
 
             Quaternion cameraYawRotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
             Vector3 desiredPosition = transform.position + cameraYawRotation * cameraOffset;
-            float accelerationFactor = Mathf.Clamp01(acceleration / Mathf.Max(maxSpeed, 0.01f));
-            float adjustedSmoothTime = cameraPositionSmoothTime
-                / (1f + accelerationFactor);
-            if (vehicleRigidbody != null)
-            {
-                Vector3 planarVelocity = Vector3.ProjectOnPlane(
-                    vehicleRigidbody.linearVelocity,
-                    Vector3.up);
-                desiredPosition += planarVelocity * adjustedSmoothTime;
-            }
-
-            followTransform.position = Vector3.SmoothDamp(
-                followTransform.position,
-                desiredPosition,
-                ref cameraPositionVelocity,
-                Mathf.Max(adjustedSmoothTime, 0.001f));
+            // Rigidbody interpolation already provides a render-time pose. Follow
+            // that pose directly so the local camera does not add another delay
+            // or consume stepped FixedUpdate velocity as a prediction offset.
+            followTransform.position = desiredPosition;
 
             Vector3 lookDirection = transform.position + Vector3.up * cameraLookHeight - followTransform.position;
             if (lookDirection.sqrMagnitude > 0.001f)

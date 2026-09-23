@@ -32,6 +32,7 @@ namespace PBalap.Network
     {
         private const int MinimumPlayers = 2;
         private const int ClientConnectTimeoutMilliseconds = 15000;
+        private const float KartSnapshotRefreshInterval = 0.25f;
         private static readonly Vector3[] SpawnPositions =
         {
             new Vector3(-2.84617305f, 0.567728043f, 26.8396702f),
@@ -46,6 +47,7 @@ namespace PBalap.Network
 
         [Header("Temporary Network UI")]
         [SerializeField] private bool showRuntimeUi = true;
+        [SerializeField, Range(30, 144)] private int targetFrameRate = 60;
 
         [Header("Scene References")]
         [SerializeField] private NetworkManager networkManager;
@@ -65,7 +67,9 @@ namespace PBalap.Network
         private TaskCompletionSource<bool> clientConnectionCompletion;
         private readonly List<ulong> connectedClientIds = new List<ulong>();
         private readonly List<string> activityMessages = new List<string>();
+        private readonly List<string> kartSnapshotLabels = new List<string>();
         private readonly Dictionary<ulong, int> spawnSlotByClientId = new Dictionary<ulong, int>();
+        private float nextKartSnapshotRefreshTime;
 
         public event Action<NetworkSessionState> StateChanged;
         public event Action<string> JoinCodeChanged;
@@ -94,6 +98,8 @@ namespace PBalap.Network
 
         private void Awake()
         {
+            Application.targetFrameRate = targetFrameRate;
+
             if (networkManager == null)
             {
                 networkManager = GetComponent<NetworkManager>();
@@ -593,23 +599,37 @@ namespace PBalap.Network
         {
             if (networkManager == null || !networkManager.IsListening || networkManager.SpawnManager == null)
             {
+                kartSnapshotLabels.Clear();
                 return;
             }
 
             GUILayout.Space(8f);
             GUILayout.Label("Kart network (posisi snapshot):");
-            foreach (NetworkObject networkObject in networkManager.SpawnManager.SpawnedObjectsList)
-            {
-                if (!networkObject.TryGetComponent(out NetworkKartPlayer kart))
-                {
-                    continue;
-                }
 
-                string role = networkObject.IsOwner ? "local" : "remote";
-                Vector3 position = networkObject.transform.position;
-                GUILayout.Label(
-                    $"- Obj {networkObject.NetworkObjectId} | Owner {networkObject.OwnerClientId} | "
-                    + $"{role} | ({position.x:F2}, {position.y:F2}, {position.z:F2})");
+            if (Event.current.type == EventType.Layout
+                && Time.unscaledTime >= nextKartSnapshotRefreshTime)
+            {
+                nextKartSnapshotRefreshTime = Time.unscaledTime + KartSnapshotRefreshInterval;
+                kartSnapshotLabels.Clear();
+
+                foreach (NetworkObject networkObject in networkManager.SpawnManager.SpawnedObjectsList)
+                {
+                    if (!networkObject.TryGetComponent(out NetworkKartPlayer kart))
+                    {
+                        continue;
+                    }
+
+                    string role = networkObject.IsOwner ? "local" : "remote";
+                    Vector3 position = networkObject.transform.position;
+                    kartSnapshotLabels.Add(
+                        $"- Obj {networkObject.NetworkObjectId} | Owner {networkObject.OwnerClientId} | "
+                        + $"{role} | ({position.x:F2}, {position.y:F2}, {position.z:F2})");
+                }
+            }
+
+            foreach (string snapshotLabel in kartSnapshotLabels)
+            {
+                GUILayout.Label(snapshotLabel);
             }
         }
 
