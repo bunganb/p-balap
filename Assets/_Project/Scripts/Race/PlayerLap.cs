@@ -1,9 +1,9 @@
 using UnityEngine;
 using Unity.Netcode;
+using PBalap.Vehicle; // Wajib ditambahkan agar bisa mengambil komponen kontroler mobil
 
 public class PlayerLap : NetworkBehaviour
 {
-    // Variabel jaringan yang hanya bisa ditambah oleh Server, tapi dibaca semua pemain
     public NetworkVariable<int> lapsCompleted = new NetworkVariable<int>(
         0, 
         NetworkVariableReadPermission.Everyone, 
@@ -11,13 +11,11 @@ public class PlayerLap : NetworkBehaviour
     );
 
     private float lastLapTime;
+    private bool isFinished = false; // Mencegah lap bertambah terus saat sudah selesai
 
     public override void OnNetworkSpawn()
     {
-        // Dengarkan jika ada perubahan nilai lap dari server
         lapsCompleted.OnValueChanged += OnLapChanged;
-
-        // Update UI saat pertama kali mobil muncul
         UpdateLapUI();
     }
 
@@ -33,25 +31,47 @@ public class PlayerLap : NetworkBehaviour
 
     private void UpdateLapUI()
     {
-        // Pastikan hanya update UI di layar milik pemain ini sendiri (jangan update UI dari data mobil musuh)
         if (IsOwner && RaceManager.Instance != null)
         {
             RaceManager.Instance.UpdateLocalLapUI(lapsCompleted.Value);
         }
     }
 
-    // Dipanggil oleh garis finish (HANYA DI SERVER)
     public void OnTriggerFinishLine()
     {
-        if (!IsServer) return;
+        // Jangan jalankan jika ini di client atau pemain ini sudah mencapai batas lap
+        if (!IsServer || isFinished) return;
 
-        // Cooldown 5 detik agar tidak double hit (lap nambah 2x) saat melewati collider
         if (Time.time - lastLapTime < 5f) return;
 
         lastLapTime = Time.time;
-        lapsCompleted.Value++; // Tambah lap
+        lapsCompleted.Value++;
 
-        // Lapor ke RaceManager untuk mengecek apakah semua pemain sudah selesai
+        // Cek apakah pemain INI sudah menyelesaikan 3 Lap
+        if (lapsCompleted.Value >= RaceManager.Instance.totalLaps)
+        {
+            isFinished = true;
+            StopThisCarClientRpc(); // Hentikan mobil pemain ini saja
+        }
+
+        // Selalu lapor ke manager untuk mengecek apakah SEMUA pemain sudah selesai
         RaceManager.Instance.CheckRaceCompletion();
+    }
+
+    [ClientRpc]
+    private void StopThisCarClientRpc()
+    {
+        // Matikan kontrol gas/stir HANYA untuk mobil ini di layar semua orang
+        ArcadeVehicleController car = GetComponent<ArcadeVehicleController>();
+        if (car != null)
+        {
+            car.SetControlEnabled(false);
+        }
+
+        // Ubah UI di layar pemain yang baru saja finish ini
+        if (IsOwner && RaceManager.Instance != null)
+        {
+            RaceManager.Instance.ShowWaitingUI();
+        }
     }
 }
