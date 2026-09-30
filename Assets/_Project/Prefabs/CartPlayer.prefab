@@ -154,6 +154,7 @@ GameObject:
   - component: {fileID: 8016411656909819523}
   - component: {fileID: 3644149740565936743}
   - component: {fileID: 5004514833349580930}
+  - component: {fileID: 6052620553452920351}
   - component: {fileID: 6683534680532996116}
   m_Layer: 0
   m_Name: CartPlayer
@@ -189,12 +190,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  GlobalObjectIdHash: 3265682458
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GlobalObjectIdHash: 1573595933
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
   AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &9100000000000000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,9 +217,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b30b70a43e9242a2b7f0033be9c7c031, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PBalap.Network.OwnerNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 1
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -220,14 +246,13 @@ MonoBehaviour:
   PositionThreshold: 0.001
   RotAngleThreshold: 0.01
   ScaleThreshold: 0.01
-  InLocalSpace: 0
-  Interpolate: 1
-  SlerpPosition: 0
-  UseHalfFloatPrecision: 0
   UseQuaternionSynchronization: 0
   UseQuaternionCompression: 0
-  UseUnreliableDeltas: 1
-  FixedSendsPerSecond: 30
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
 --- !u!114 &9100000000000000003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -238,8 +263,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a7c66cf0fa7f4ee4b843b47ef8ca12cd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PBalap.Network.NetworkKartPlayer
+  ShowTopMostFoldoutHeaderGroup: 1
   arcadeController: {fileID: 5004514833349580930}
   vehicleRigidbody: {fileID: 3644149740565936743}
 --- !u!33 &4847724968220651919
@@ -345,7 +371,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 4
   m_CollisionDetection: 0
 --- !u!114 &5004514833349580930
 MonoBehaviour:
@@ -369,6 +395,10 @@ MonoBehaviour:
   driftBoostMultiplier: 2
   driftBoostDuration: 1.5
   vehicleRigidbody: {fileID: 3644149740565936743}
+  vehiclePrefabs: []
+  selectedVehiclePrefab: 0
+  vehicleVisualParent: {fileID: 0}
+  currentVehicleVisual: {fileID: 0}
   frontLeftVisual: {fileID: 412496368876221275}
   frontRightVisual: {fileID: 6424997845792744465}
   rearLeftVisual: {fileID: 7628132867674595026}
@@ -380,6 +410,24 @@ MonoBehaviour:
   cameraOffset: {x: 0, y: 2.5, z: -4}
   cameraLookHeight: 1
   cameraRotationSmoothSpeed: 10
+--- !u!114 &6052620553452920351
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8221354507439611581}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f835f5de7ae7a5541bbc83d846c5442a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerLap
+  ShowTopMostFoldoutHeaderGroup: 1
+  lapsCompleted:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!136 &6683534680532996116
 CapsuleCollider:
   m_ObjectHideFlags: 0
