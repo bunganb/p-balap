@@ -12,78 +12,71 @@ public class Countdown : NetworkBehaviour
     [Header("Settings")]
     [SerializeField] private int timeToStart = 3;
 
-    // OnNetworkSpawn menggantikan Start() di multiplayer
+    private bool isRacing = false; 
+    private bool isCountdownStarted = false; 
+
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
 
         if (countdownText != null)
         {
-            countdownText.text = "GET READY!";
+            // Pesan untuk mengingatkan Host
+            countdownText.text = IsServer ? "PRESS 'ENTER' TO START" : "WAITING FOR HOST...";
         }
+    }
 
-        // Kunci kontrol saat jaringan baru tersambung
-        SetAllVehiclesControl(false);
-
-        // Jika yang menekan tombol adalah Host (Server), mulai hitungan mundur
-        if (IsServer)
+    private void Update()
+    {
+        // Terus kunci mobil selama balapan belum berstatus "GO!"
+        if (!isRacing)
         {
-            StartCoroutine(CountdownRoutine());
+            SetAllVehiclesControl(false);
         }
+
+        // Cek jika dia Host, hitungan belum mulai, dan menekan Enter (Return) atau Numpad Enter (KeypadEnter)
+        if (IsServer && !isCountdownStarted)
+        {
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                Debug.Log("Tombol Enter ditekan oleh Host! Memulai hitungan mundur...");
+                isCountdownStarted = true; 
+                TriggerCountdownClientRpc(); 
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void TriggerCountdownClientRpc()
+    {
+        // Berjalan serentak di layar Host dan Client
+        StartCoroutine(CountdownRoutine());
     }
 
     private IEnumerator CountdownRoutine()
     {
-        // Jeda 2 detik sebelum angka muncul, agar game sempat memuat mobil pemain
-        yield return new WaitForSeconds(2f); 
-
         int timer = timeToStart;
 
         while (timer > 0)
         {
-            // Menyuruh semua client mengupdate tulisan angka
-            UpdateTextClientRpc(timer.ToString());
-            
-            // Kita pastikan mobil tetap terkunci setiap detik (berguna jika ada pemain yang telat loading)
-            LockControlsClientRpc(); 
+            if (countdownText != null) countdownText.text = timer.ToString();
             
             yield return new WaitForSeconds(1f);
             timer--;
         }
 
         // Hitungan selesai
-        UpdateTextClientRpc("GO!");
-        EnableControlsClientRpc(); // Menyuruh semua client membuka kunci mobilnya
+        if (countdownText != null) countdownText.text = "GO!";
+        isRacing = true; // Matikan pengunci otomatis di Update()
+        SetAllVehiclesControl(true); // Lepas kunci semua mobil
 
         // Hilangkan teks "GO!" setelah 1 detik
         yield return new WaitForSeconds(1f);
-        UpdateTextClientRpc(""); 
-    }
-
-    [ClientRpc]
-    private void UpdateTextClientRpc(string text)
-    {
-        if (countdownText != null)
-        {
-            countdownText.text = text;
-        }
-    }
-
-    [ClientRpc]
-    private void LockControlsClientRpc()
-    {
-        SetAllVehiclesControl(false);
-    }
-
-    [ClientRpc]
-    private void EnableControlsClientRpc()
-    {
-        SetAllVehiclesControl(true);
+        if (countdownText != null) countdownText.text = ""; 
     }
 
     private void SetAllVehiclesControl(bool isEnabled)
     {
-        // Cari semua mobil yang ada di arena balap
         ArcadeVehicleController[] vehicles = FindObjectsByType<ArcadeVehicleController>(FindObjectsSortMode.None);
         
         foreach (var v in vehicles)
