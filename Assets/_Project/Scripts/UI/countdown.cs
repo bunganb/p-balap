@@ -1,87 +1,88 @@
-using UnityEngine;
-using Unity.Netcode;
-using TMPro; 
+using System;
 using System.Collections;
-using PBalap.Vehicle; 
+using TMPro;
+using Unity.Netcode;
+using UnityEngine;
 
-public class Countdown : NetworkBehaviour
+/// <summary>Displays a server-driven countdown on every connected player.</summary>
+public sealed class Countdown : NetworkBehaviour
 {
     [Header("UI Reference")]
     [SerializeField] private TextMeshProUGUI countdownText;
-    
-    [Header("Settings")]
-    [SerializeField] private int timeToStart = 3;
 
-    private bool isRacing = false; 
-    private bool isCountdownStarted = false; 
+    [Header("Settings")]
+    [SerializeField, Min(1)] private int timeToStart = 3;
+
+    private readonly NetworkVariable<int> countdownValue = new NetworkVariable<int>(
+        -1,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    private Coroutine countdownRoutine;
+
+    public event Action CountdownCompletedOnServer;
+    public bool IsCountingDown => countdownRoutine != null;
 
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
+        countdownValue.OnValueChanged += HandleCountdownChanged;
+        RenderCountdown(countdownValue.Value);
+    }
 
-        if (countdownText != null)
+    public override void OnNetworkDespawn()
+    {
+        countdownValue.OnValueChanged -= HandleCountdownChanged;
+        if (countdownRoutine != null)
         {
-            // Pesan untuk mengingatkan Host
-            countdownText.text = IsServer ? "PRESS 'ENTER' TO START" : "WAITING FOR HOST...";
+            StopCoroutine(countdownRoutine);
+            countdownRoutine = null;
         }
     }
 
-    private void Update()
+    public bool StartCountdownOnServer()
     {
-        // Terus kunci mobil selama balapan belum berstatus "GO!"
-        if (!isRacing)
+        if (!IsServer || !IsSpawned || countdownRoutine != null)
         {
-            SetAllVehiclesControl(false);
+            return false;
         }
 
-        // Cek jika dia Host, hitungan belum mulai, dan menekan Enter (Return) atau Numpad Enter (KeypadEnter)
-        if (IsServer && !isCountdownStarted)
-        {
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-            {
-                Debug.Log("Tombol Enter ditekan oleh Host! Memulai hitungan mundur...");
-                isCountdownStarted = true; 
-                TriggerCountdownClientRpc(); 
-            }
-        }
-    }
-
-    [ClientRpc]
-    private void TriggerCountdownClientRpc()
-    {
-        // Berjalan serentak di layar Host dan Client
-        StartCoroutine(CountdownRoutine());
+        countdownRoutine = StartCoroutine(CountdownRoutine());
+        return true;
     }
 
     private IEnumerator CountdownRoutine()
     {
-        int timer = timeToStart;
-
-        while (timer > 0)
+        for (int timer = timeToStart; timer > 0; timer--)
         {
-            if (countdownText != null) countdownText.text = timer.ToString();
-            
+            countdownValue.Value = timer;
             yield return new WaitForSeconds(1f);
-            timer--;
         }
 
-        // Hitungan selesai
-        if (countdownText != null) countdownText.text = "GO!";
-        isRacing = true; // Matikan pengunci otomatis di Update()
-        SetAllVehiclesControl(true); // Lepas kunci semua mobil
+        countdownValue.Value = 0;
+        CountdownCompletedOnServer?.Invoke();
 
-        // Hilangkan teks "GO!" setelah 1 detik
         yield return new WaitForSeconds(1f);
-        if (countdownText != null) countdownText.text = ""; 
+        countdownValue.Value = -1;
+        countdownRoutine = null;
     }
 
-    private void SetAllVehiclesControl(bool isEnabled)
+    private void HandleCountdownChanged(int previousValue, int currentValue)
     {
-        ArcadeVehicleController[] vehicles = FindObjectsByType<ArcadeVehicleController>(FindObjectsSortMode.None);
-        
-        foreach (var v in vehicles)
+        RenderCountdown(currentValue);
+    }
+
+    private void RenderCountdown(int value)
+    {
+        if (countdownText == null)
         {
-            v.SetControlEnabled(isEnabled);
+            return;
         }
+
+        countdownText.text = value > 0
+            ? value.ToString()
+            : value == 0
+                ? "GO!"
+                : string.Empty;
+        countdownText.gameObject.SetActive(value >= 0);
     }
 }

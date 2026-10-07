@@ -185,7 +185,97 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
       propertyPath: m_Name
-      value: Bom Hover
+      value: Bom Hover - Right Lane
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+--- !u!1001 &2100000001
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_InScenePlaced
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3812469081
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1687963438
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.61
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 18.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_Name
+      value: Bom Hover - Middle Lane
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+--- !u!1001 &2100000002
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_InScenePlaced
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2468135790
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1687963439
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.61
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 18.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_Name
+      value: Bom Hover - Left Lane
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
