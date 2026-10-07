@@ -10,8 +10,10 @@ namespace PBalap.Network
     [RequireComponent(typeof(ArcadeVehicleController), typeof(Rigidbody))]
     public sealed class NetworkKartPlayer : NetworkBehaviour
     {
-        private const float InputSendInterval = 0.05f;
+        private const float InputSendInterval = 1f / 30f;
         private const float InputTimeout = 0.25f;
+        private const float AutomaticThrottle = 1f;
+        private const float StaleSteeringRecoverySpeed = 4f;
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
 
@@ -81,6 +83,7 @@ namespace PBalap.Network
                 if (inputSendTimer <= 0f)
                 {
                     SubmitInputRpc(
+                        ++localInputSequence,
                         arcadeController.SteeringInput,
                         arcadeController.ThrottleInput,
                         arcadeController.BrakeInput);
@@ -91,9 +94,19 @@ namespace PBalap.Network
             if (IsServer && !IsOwner && CanDrive)
             {
                 bool inputExpired = Time.time - lastServerInputTime > InputTimeout;
+                if (inputExpired)
+                {
+                    // A lost UDP input packet must not stop an automatically-moving kart.
+                    // Release steering gradually and continue forward until fresh input arrives.
+                    serverSteeringInput = Mathf.MoveTowards(
+                        serverSteeringInput,
+                        0f,
+                        StaleSteeringRecoverySpeed * Time.fixedDeltaTime);
+                }
+
                 arcadeController.SetInput(
-                    inputExpired ? 0f : serverSteeringInput,
-                    inputExpired ? 0f : serverThrottleInput,
+                    serverSteeringInput,
+                    inputExpired ? AutomaticThrottle : serverThrottleInput,
                     inputExpired ? false : serverBrakeInput);
             }
         }
@@ -103,12 +116,16 @@ namespace PBalap.Network
         private bool serverBrakeInput;
         private float inputSendTimer;
         private float lastServerInputTime;
+        private uint localInputSequence;
+        private uint lastServerInputSequence;
+        private bool hasReceivedServerInput;
 
         [Rpc(
             SendTo.Server,
             Delivery = RpcDelivery.Unreliable,
             InvokePermission = RpcInvokePermission.Owner)]
         private void SubmitInputRpc(
+            uint sequence,
             float steering,
             float throttle,
             bool brake,
@@ -119,10 +136,24 @@ namespace PBalap.Network
                 return;
             }
 
+            // Unreliable packets can arrive out of order. Never let an older input
+            // overwrite a newer steering/brake state that the server already applied.
+            if (hasReceivedServerInput && !IsSequenceNewer(sequence, lastServerInputSequence))
+            {
+                return;
+            }
+
+            lastServerInputSequence = sequence;
+            hasReceivedServerInput = true;
             serverSteeringInput = Mathf.Clamp(steering, -1f, 1f);
             serverThrottleInput = Mathf.Clamp(throttle, -1f, 1f);
             serverBrakeInput = brake;
             lastServerInputTime = Time.time;
+        }
+
+        private static bool IsSequenceNewer(uint candidate, uint current)
+        {
+            return unchecked((int)(candidate - current)) > 0;
         }
 
         private void ApplyControlState(bool raceAllowsDriving)
@@ -155,6 +186,9 @@ namespace PBalap.Network
                 serverThrottleInput = 0f;
                 serverBrakeInput = false;
                 inputSendTimer = 0f;
+                localInputSequence = 0;
+                lastServerInputSequence = 0;
+                hasReceivedServerInput = false;
             }
 
             // The server simulates physics. Clients display replicated snapshots.
