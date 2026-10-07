@@ -1,3 +1,4 @@
+using System;
 using PBalap.Vehicle;
 using Unity.Netcode;
 using UnityEngine;
@@ -10,6 +11,8 @@ namespace PBalap.Network
     [RequireComponent(typeof(ArcadeVehicleController), typeof(Rigidbody))]
     public sealed class NetworkKartPlayer : NetworkBehaviour
     {
+        public static event Action<int> CountdownChanged;
+
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
 
@@ -21,6 +24,11 @@ namespace PBalap.Network
         private readonly NetworkVariable<int> bombCount = new NetworkVariable<int>(
             0,
             NetworkVariableReadPermission.Owner,
+            NetworkVariableWritePermission.Server);
+
+        private readonly NetworkVariable<int> countdownValue = new NetworkVariable<int>(
+            -1,
+            NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
         public bool CanDrive => canDrive.Value;
@@ -44,6 +52,7 @@ namespace PBalap.Network
         public override void OnNetworkSpawn()
         {
             canDrive.OnValueChanged += HandleCanDriveChanged;
+            countdownValue.OnValueChanged += HandleCountdownChanged;
             ApplyControlState(canDrive.Value);
             Debug.Log(
                 $"[NetworkKart] Spawned object {NetworkObjectId}, owner {OwnerClientId}, "
@@ -53,6 +62,7 @@ namespace PBalap.Network
         public override void OnNetworkDespawn()
         {
             canDrive.OnValueChanged -= HandleCanDriveChanged;
+            countdownValue.OnValueChanged -= HandleCountdownChanged;
             ApplyControlState(false);
         }
 
@@ -78,9 +88,25 @@ namespace PBalap.Network
             return true;
         }
 
+        public bool SetCountdownOnServer(int value)
+        {
+            if (!IsServer || !IsSpawned)
+            {
+                return false;
+            }
+
+            countdownValue.Value = value;
+            return true;
+        }
+
         private void HandleCanDriveChanged(bool previousValue, bool currentValue)
         {
             ApplyControlState(currentValue);
+        }
+
+        private void HandleCountdownChanged(int previousValue, int currentValue)
+        {
+            CountdownChanged?.Invoke(currentValue);
         }
 
         private void ApplyControlState(bool raceAllowsDriving)
