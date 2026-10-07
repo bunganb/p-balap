@@ -4,12 +4,14 @@ using UnityEngine;
 
 namespace PBalap.Network
 {
-    /// <summary>Connects kart ownership and the replicated race gate to local vehicle control.</summary>
+    /// <summary>Routes owner input to the server and controls server-side kart simulation.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject), typeof(OwnerNetworkTransform))]
     [RequireComponent(typeof(ArcadeVehicleController), typeof(Rigidbody))]
     public sealed class NetworkKartPlayer : NetworkBehaviour
     {
+        private const float InputSendInterval = 0.05f;
+        private const float InputTimeout = 0.25f;
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
 
@@ -66,14 +68,73 @@ namespace PBalap.Network
             ApplyControlState(currentValue);
         }
 
+        private void FixedUpdate()
+        {
+            if (!IsSpawned)
+            {
+                return;
+            }
+
+            if (IsOwner && IsClient && CanDrive && !IsServer)
+            {
+                inputSendTimer -= Time.fixedDeltaTime;
+                if (inputSendTimer <= 0f)
+                {
+                    SubmitInputRpc(
+                        arcadeController.SteeringInput,
+                        arcadeController.ThrottleInput,
+                        arcadeController.BrakeInput);
+                    inputSendTimer = InputSendInterval;
+                }
+            }
+
+            if (IsServer && !IsOwner && CanDrive)
+            {
+                bool inputExpired = Time.time - lastServerInputTime > InputTimeout;
+                arcadeController.SetInput(
+                    inputExpired ? 0f : serverSteeringInput,
+                    inputExpired ? 0f : serverThrottleInput,
+                    inputExpired ? false : serverBrakeInput);
+            }
+        }
+
+        private float serverSteeringInput;
+        private float serverThrottleInput;
+        private bool serverBrakeInput;
+        private float inputSendTimer;
+        private float lastServerInputTime;
+
+        [Rpc(
+            SendTo.Server,
+            Delivery = RpcDelivery.Unreliable,
+            InvokePermission = RpcInvokePermission.Owner)]
+        private void SubmitInputRpc(
+            float steering,
+            float throttle,
+            bool brake,
+            RpcParams rpcParams = default)
+        {
+            if (rpcParams.Receive.SenderClientId != OwnerClientId)
+            {
+                return;
+            }
+
+            serverSteeringInput = Mathf.Clamp(steering, -1f, 1f);
+            serverThrottleInput = Mathf.Clamp(throttle, -1f, 1f);
+            serverBrakeInput = brake;
+            lastServerInputTime = Time.time;
+        }
+
         private void ApplyControlState(bool raceAllowsDriving)
         {
             bool localOwner = IsSpawned && IsOwner;
             bool localCanDrive = localOwner && raceAllowsDriving;
+            bool serverCanDrive = IsServer && raceAllowsDriving;
 
             if (arcadeController != null)
             {
                 arcadeController.SetControlEnabled(localCanDrive);
+                arcadeController.SetSimulationEnabled(serverCanDrive);
                 arcadeController.SetCameraEnabled(localOwner);
             }
 
@@ -82,15 +143,23 @@ namespace PBalap.Network
                 return;
             }
 
-            if (!localCanDrive && !vehicleRigidbody.isKinematic)
+            if (!serverCanDrive && !vehicleRigidbody.isKinematic)
             {
                 vehicleRigidbody.linearVelocity = Vector3.zero;
                 vehicleRigidbody.angularVelocity = Vector3.zero;
             }
 
-            // Only the owner simulates physics. Remote peers display snapshots.
-            vehicleRigidbody.useGravity = localCanDrive;
-            vehicleRigidbody.isKinematic = !localCanDrive;
+            if (!raceAllowsDriving)
+            {
+                serverSteeringInput = 0f;
+                serverThrottleInput = 0f;
+                serverBrakeInput = false;
+                inputSendTimer = 0f;
+            }
+
+            // The server simulates physics. Clients display replicated snapshots.
+            vehicleRigidbody.useGravity = serverCanDrive;
+            vehicleRigidbody.isKinematic = !serverCanDrive;
         }
     }
 }

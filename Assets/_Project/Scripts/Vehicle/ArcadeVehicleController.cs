@@ -53,6 +53,7 @@ namespace PBalap.Vehicle
         private bool isDrifting;
         private float driftBoostTimer;
         private bool controlEnabled = true;
+        private bool simulationEnabled = true;
 
         public float Acceleration => acceleration;
         public float MaxSpeed => maxSpeed;
@@ -153,25 +154,49 @@ namespace PBalap.Vehicle
         {
             if (!controlEnabled)
             {
-                ResetInputState();
                 UpdateWheelVisuals();
                 return;
             }
 
             Keyboard keyboard = Keyboard.current;
-            steeringInput = 0f;
-            throttleInput = 0f;
-            brakeInput = false;
+            float steering = 0f;
+            float throttle = 0f;
+            bool brake = false;
 
             if (keyboard != null)
             {
                 // Match the movement used by the Michael scene: the kart moves
                 // forward automatically, while holding S switches to reverse.
-                throttleInput = keyboard.sKey.isPressed ? -1f : 1f;
-                steeringInput = (keyboard.dKey.isPressed ? 1f : 0f)
+                throttle = keyboard.sKey.isPressed ? -1f : 1f;
+                steering = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
-                brakeInput = keyboard.spaceKey.isPressed;
+                brake = keyboard.spaceKey.isPressed;
             }
+
+            SetInput(steering, throttle, brake);
+            UpdateWheelVisuals();
+        }
+
+        private void FixedUpdate()
+        {
+            if (vehicleRigidbody == null || !simulationEnabled)
+            {
+                return;
+            }
+
+            ApplyArcadeMovement();
+            ApplySteering();
+        }
+
+        public float SteeringInput => steeringInput;
+        public float ThrottleInput => throttleInput;
+        public bool BrakeInput => brakeInput;
+
+        public void SetInput(float steering, float throttle, bool brake)
+        {
+            steeringInput = Mathf.Clamp(steering, -1f, 1f);
+            throttleInput = Mathf.Clamp(throttle, -1f, 1f);
+            brakeInput = brake;
 
             if (Mathf.Abs(steeringInput) > 0.01f && !brakeInput)
             {
@@ -192,19 +217,6 @@ namespace PBalap.Vehicle
             }
 
             driftBoostTimer = Mathf.Max(0f, driftBoostTimer - Time.deltaTime);
-
-            UpdateWheelVisuals();
-        }
-
-        private void FixedUpdate()
-        {
-            if (vehicleRigidbody == null || !controlEnabled)
-            {
-                return;
-            }
-
-            ApplyArcadeMovement();
-            ApplySteering();
         }
 
         private void ApplyArcadeMovement()
@@ -325,6 +337,16 @@ namespace PBalap.Vehicle
             if (!enabled)
             {
                 ResetInputState();
+            }
+        }
+
+        public void SetSimulationEnabled(bool enabled)
+        {
+            simulationEnabled = enabled;
+            if (!enabled && vehicleRigidbody != null)
+            {
+                vehicleRigidbody.linearVelocity = Vector3.zero;
+                vehicleRigidbody.angularVelocity = Vector3.zero;
             }
         }
 
