@@ -192,6 +192,12 @@ namespace PBalap.Network
             }
 
             // The server simulates physics. Clients display replicated snapshots.
+            // Only the server uses Rigidbody interpolation. Client proxies are
+            // already interpolated by NetworkTransform; enabling both produces a
+            // delayed, uneven render pose, especially for the non-host owner.
+            vehicleRigidbody.interpolation = serverCanDrive
+                ? RigidbodyInterpolation.Interpolate
+                : RigidbodyInterpolation.None;
             vehicleRigidbody.useGravity = serverCanDrive;
             vehicleRigidbody.isKinematic = !serverCanDrive;
         }

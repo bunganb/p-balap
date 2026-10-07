@@ -7,17 +7,24 @@ namespace PBalap.Network
     /// </summary>
     public sealed class OwnerNetworkTransform : NetworkTransform
     {
-        private const int JitterBufferTicks = 3;
+        private const float LocalOwnerPositionSmoothing = 0.08f;
+        private const float LocalOwnerRotationSmoothing = 0.06f;
 
         public override void OnNetworkSpawn()
         {
-            // Keep several snapshots buffered on observing clients. At the scene's
-            // 30 Hz tick rate this adds about 100 ms of visual delay, allowing short
-            // bursts of jitter/loss to arrive before the render timeline needs them.
-            InterpolationBufferTickOffset = System.Math.Max(
-                InterpolationBufferTickOffset,
-                JitterBufferTicks);
+            // This setting is static across every NetworkTransform. An additional
+            // global buffer also delayed the non-host owner's own kart, so rely on
+            // NGO's measured tick latency instead of forcing extra ticks globally.
+            InterpolationBufferTickOffset = 0;
             base.OnNetworkSpawn();
+
+            if (IsOwner && !IsServer)
+            {
+                // The local client still receives a server-authoritative pose, but
+                // must not use the heavier smoothing intended for remote observers.
+                PositionMaxInterpolationTime = LocalOwnerPositionSmoothing;
+                RotationMaxInterpolationTime = LocalOwnerRotationSmoothing;
+            }
         }
 
         protected override bool OnIsServerAuthoritative()
