@@ -52,6 +52,7 @@ namespace PBalap.Network
         [Header("Scene References")]
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport unityTransport;
+        [SerializeField] private Countdown countdown;
 
         private bool operationInProgress;
         private bool joinedAsClient;
@@ -59,6 +60,7 @@ namespace PBalap.Network
         private bool intentionalShutdown;
         private bool applicationQuitting;
         private bool raceStarted;
+        private bool raceStartInProgress;
         private string joinCode = string.Empty;
         private string joinCodeInput = string.Empty;
         private string lastError = string.Empty;
@@ -110,6 +112,11 @@ namespace PBalap.Network
                 unityTransport = GetComponent<UnityTransport>();
             }
 
+            if (countdown == null)
+            {
+                countdown = FindAnyObjectByType<Countdown>();
+            }
+
             if (networkManager != null)
             {
                 networkManager.NetworkConfig.ConnectionApproval = true;
@@ -146,6 +153,11 @@ namespace PBalap.Network
 
         private void OnDestroy()
         {
+            if (countdown != null)
+            {
+                countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
+            }
+
             if (networkManager != null && networkManager.ConnectionApprovalCallback == ApproveConnection)
             {
                 networkManager.ConnectionApprovalCallback = null;
@@ -195,6 +207,7 @@ namespace PBalap.Network
             spawnSlotByClientId.Clear();
             activityMessages.Clear();
             raceStarted = false;
+            raceStartInProgress = false;
             SetJoinCode(string.Empty);
             SetNotice("Membuat room Relay...");
 
@@ -283,6 +296,7 @@ namespace PBalap.Network
             connectedClientIds.Clear();
             activityMessages.Clear();
             raceStarted = false;
+            raceStartInProgress = false;
             JoinCodeInput = normalizedCode;
             SetNotice($"Mencari room {normalizedCode}...");
 
@@ -382,9 +396,11 @@ namespace PBalap.Network
                 return false;
             }
 
-            if (raceStarted)
+            if (raceStarted || raceStartInProgress)
             {
-                SetNotice("Balapan sudah dimulai.");
+                SetNotice(raceStarted
+                    ? "Balapan sudah dimulai."
+                    : "Countdown sedang berjalan.");
                 return false;
             }
 
@@ -409,16 +425,56 @@ namespace PBalap.Network
                 playerKarts.Add(kart);
             }
 
-            raceStarted = true;
-            lastError = string.Empty;
-            foreach (NetworkKartPlayer kart in playerKarts)
+            if (countdown == null || !countdown.IsSpawned)
             {
-                kart.SetCanDriveOnServer(true);
+                SetNotice("Countdown network belum siap pada scene Network.");
+                return false;
             }
 
-            SetNotice($"Balapan dimulai untuk {ConnectedPlayerCount} pemain.");
-            Debug.Log($"[Network] Race started by Host with {ConnectedPlayerCount} players.");
+            countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
+            countdown.CountdownCompletedOnServer += HandleCountdownCompletedOnServer;
+            if (!countdown.StartCountdownOnServer())
+            {
+                countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
+                SetNotice("Countdown gagal dimulai atau sudah berjalan.");
+                return false;
+            }
+
+            raceStartInProgress = true;
+            lastError = string.Empty;
+            SetNotice($"Countdown dimulai untuk {playerKarts.Count} pemain.");
+            Debug.Log($"[Network] Race countdown started with {playerKarts.Count} players.");
             return true;
+        }
+
+        private void HandleCountdownCompletedOnServer()
+        {
+            if (networkManager == null || !networkManager.IsServer)
+            {
+                return;
+            }
+
+            countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
+            raceStartInProgress = false;
+            raceStarted = true;
+
+            int enabledKartCount = 0;
+            foreach (NetworkClient client in networkManager.ConnectedClientsList)
+            {
+                NetworkKartPlayer kart = client.PlayerObject == null
+                    ? null
+                    : client.PlayerObject.GetComponent<NetworkKartPlayer>();
+                if (kart == null)
+                {
+                    continue;
+                }
+
+                kart.SetCanDriveOnServer(true);
+                enabledKartCount++;
+            }
+
+            SetNotice($"Balapan dimulai untuk {enabledKartCount} pemain.");
+            Debug.Log($"[Network] Race started after countdown for {enabledKartCount} players.");
         }
 
         public bool CloseRoom()
@@ -451,6 +507,11 @@ namespace PBalap.Network
                 joinedAsClient = false;
                 hostingSession = false;
                 raceStarted = false;
+                raceStartInProgress = false;
+                if (countdown != null)
+                {
+                    countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
+                }
                 lastError = string.Empty;
                 SetJoinCode(string.Empty);
                 SetState(NetworkSessionState.Disconnected);
@@ -541,10 +602,10 @@ namespace PBalap.Network
             response.Position = null;
             response.Rotation = null;
 
-            if (raceStarted)
+            if (raceStarted || raceStartInProgress)
             {
                 response.Approved = false;
-                response.Reason = "Balapan sudah dimulai.";
+                response.Reason = "Balapan sudah atau sedang dimulai.";
                 return;
             }
 
@@ -770,7 +831,12 @@ namespace PBalap.Network
             {
                 GUILayout.Label($"Join Code: {joinCode}");
                 GUILayout.Label($"Players: {ConnectedPlayerCount}/{maxPlayers}");
-                GUILayout.Label($"Race: {(raceStarted ? "Racing" : "Preparing")}");
+                string raceStatus = raceStarted
+                    ? "Racing"
+                    : raceStartInProgress
+                        ? "Countdown"
+                        : "Preparing";
+                GUILayout.Label($"Race: {raceStatus}");
 
                 if (GUILayout.Button("Copy Join Code"))
                 {
@@ -787,7 +853,7 @@ namespace PBalap.Network
                     GUILayout.Label($"- {role}");
                 }
 
-                if (!raceStarted)
+                if (!raceStarted && !raceStartInProgress)
                 {
                     bool previousGuiEnabled = GUI.enabled;
                     GUI.enabled = ConnectedPlayerCount >= MinimumPlayers;
@@ -801,6 +867,10 @@ namespace PBalap.Network
                     {
                         GUILayout.Label($"Menunggu pemain lain. Minimal {MinimumPlayers} pemain.");
                     }
+                }
+                else if (raceStartInProgress)
+                {
+                    GUILayout.Label("Countdown berjalan...");
                 }
 
                 DrawSpawnedKartSnapshots();
