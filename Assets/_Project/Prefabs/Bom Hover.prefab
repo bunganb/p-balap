@@ -102,7 +102,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.10552513
+  m_Radius: 0.4
   m_Center: {x: 0, y: 0.10552513, z: -0.011425283}
 --- !u!114 &428139116708751369
 MonoBehaviour:
@@ -113,9 +113,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 8904900432619358096}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 692f0203ef870184cbbd2c0a1df704b0, type: 3}
+  m_Script: {fileID: 11500000, guid: 4e8531c147e4488198157d65ba73d90e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PBalap.Items.ItemPickup
+  m_EditorClassIdentifier: Assembly-CSharp::PBalap.Items.BombPickup
+  respawnDelay: 8
+  pickupValidationDistance: 4
+  pickupCollider: {fileID: 4524575342976108793}
 --- !u!114 &-8265377662112098681
 MonoBehaviour:
   m_ObjectHideFlags: 0

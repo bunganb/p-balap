@@ -18,7 +18,13 @@ namespace PBalap.Network
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
+        private readonly NetworkVariable<int> bombCount = new NetworkVariable<int>(
+            0,
+            NetworkVariableReadPermission.Owner,
+            NetworkVariableWritePermission.Server);
+
         public bool CanDrive => canDrive.Value;
+        public int BombCount => bombCount.Value;
 
         private void Awake()
         {
@@ -59,6 +65,17 @@ namespace PBalap.Network
             }
 
             canDrive.Value = enabled;
+        }
+
+        public bool TryStoreBombOnServer()
+        {
+            if (!IsServer || !IsSpawned)
+            {
+                return false;
+            }
+
+            bombCount.Value++;
+            return true;
         }
 
         private void HandleCanDriveChanged(bool previousValue, bool currentValue)
