@@ -29,7 +29,11 @@ public class RaceManager : NetworkBehaviour
         }
 
         NetworkSessionController session = FindAnyObjectByType<NetworkSessionController>();
-        if (session == null || !session.IsConnected || session.IsRaceStarted || session.IsRaceStartInProgress)
+        if (session == null
+            || !session.IsConnected
+            || session.IsRaceStarted
+            || session.IsRaceStartInProgress
+            || IsRaceStartedOrCountdownActive())
         {
             if (showingPreRaceStatus)
             {
@@ -52,6 +56,22 @@ public class RaceManager : NetworkBehaviour
         }
 
         showingPreRaceStatus = true;
+    }
+
+    private static bool IsRaceStartedOrCountdownActive()
+    {
+        NetworkKartPlayer[] playerKarts = FindObjectsByType<NetworkKartPlayer>();
+
+        foreach (NetworkKartPlayer playerKart in playerKarts)
+        {
+            if ((playerKart.IsOwner && playerKart.CanDrive)
+                || playerKart.CountdownValue >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public override void OnNetworkSpawn()

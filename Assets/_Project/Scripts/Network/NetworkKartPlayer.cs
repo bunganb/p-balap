@@ -56,6 +56,7 @@ namespace PBalap.Network
 
         public bool CanDrive => canDrive.Value;
         public int BombCount => bombCount.Value;
+        public int CountdownValue => countdownValue.Value;
 
         private void Awake()
         {
