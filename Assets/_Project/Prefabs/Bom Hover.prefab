@@ -26,7 +26,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.31
+      value: 0.61
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
       propertyPath: m_LocalPosition.z
@@ -116,16 +116,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1687963437
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 3044586023
+  InScenePlacedSourceGlobalObjectIdHash: 1687963437
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
-  m_InScenePlaced: 0
+  m_InScenePlaced: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
