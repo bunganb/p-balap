@@ -17,6 +17,8 @@ public class PlayerLap : NetworkBehaviour
     {
         lapsCompleted.OnValueChanged += OnLapChanged;
         UpdateLapUI();
+        Debug.Log($"[PlayerLap] Spawned object={name}, owner={OwnerClientId}, "
+            + $"isServer={IsServer}, isOwner={IsOwner}, laps={lapsCompleted.Value}", this);
     }
 
     public override void OnNetworkDespawn()
@@ -26,6 +28,8 @@ public class PlayerLap : NetworkBehaviour
 
     private void OnLapChanged(int previousValue, int newValue)
     {
+        Debug.Log($"[PlayerLap] Lap berubah {previousValue} -> {newValue}, "
+            + $"owner={OwnerClientId}, isOwner={IsOwner}", this);
         UpdateLapUI();
     }
 
@@ -35,17 +39,63 @@ public class PlayerLap : NetworkBehaviour
         {
             RaceManager.Instance.UpdateLocalLapUI(lapsCompleted.Value);
         }
+        else
+        {
+            Debug.LogWarning($"[PlayerLap] UI lap tidak diperbarui. "
+                + $"isOwner={IsOwner}, RaceManager.Instance null={RaceManager.Instance == null}", this);
+        }
     }
 
     public void OnTriggerFinishLine()
     {
-        // Jangan jalankan jika ini di client atau pemain ini sudah mencapai batas lap
-        if (!IsServer || isFinished) return;
+        if (!IsServer)
+        {
+            if (IsOwner && IsSpawned)
+            {
+                Debug.Log("[PlayerLap] Crossing dari owner client, mengirim ServerRpc.", this);
+                RequestFinishLineServerRpc();
+            }
+            else
+            {
+                Debug.LogWarning($"[PlayerLap] Crossing diabaikan: isOwner={IsOwner}, isSpawned={IsSpawned}", this);
+            }
 
-        if (Time.time - lastLapTime < 5f) return;
+            return;
+        }
+
+        CompleteLapOnServer();
+    }
+
+    [ServerRpc]
+    private void RequestFinishLineServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        if (serverRpcParams.Receive.SenderClientId != OwnerClientId)
+        {
+            Debug.LogWarning($"[PlayerLap] ServerRpc ditolak: sender={serverRpcParams.Receive.SenderClientId}, "
+                + $"owner={OwnerClientId}", this);
+            return;
+        }
+
+        CompleteLapOnServer();
+    }
+
+    private void CompleteLapOnServer()
+    {
+        if (!IsServer || isFinished)
+        {
+            Debug.Log($"[PlayerLap] Lap tidak diproses: isServer={IsServer}, isFinished={isFinished}", this);
+            return;
+        }
+
+        if (Time.time - lastLapTime < 5f)
+        {
+            Debug.Log($"[PlayerLap] Lap diabaikan cooldown: {Time.time - lastLapTime:F2}s sejak lap terakhir.", this);
+            return;
+        }
 
         lastLapTime = Time.time;
         lapsCompleted.Value++;
+        Debug.Log($"[PlayerLap] LAP BERTAMBAH menjadi {lapsCompleted.Value} pada server.", this);
 
         // Cek apakah pemain INI sudah menyelesaikan 3 Lap
         if (lapsCompleted.Value >= RaceManager.Instance.totalLaps)

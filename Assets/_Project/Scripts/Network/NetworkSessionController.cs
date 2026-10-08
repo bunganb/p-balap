@@ -31,7 +31,7 @@ namespace PBalap.Network
     [RequireComponent(typeof(NetworkManager), typeof(UnityTransport))]
     public sealed class NetworkSessionController : MonoBehaviour
     {
-        private const int MinimumPlayers = 2;
+        private const int MinimumPlayers = 1;
         private const int ClientConnectTimeoutMilliseconds = 15000;
         private const float KartSnapshotRefreshInterval = 0.25f;
         private static readonly Vector3[] SpawnPositions =

@@ -65,6 +65,11 @@ public class RaceManager : NetworkBehaviour
         if (lapText != null)
         {
             lapText.text = $"LAP: {displayLap} / {totalLaps}";
+            Debug.Log($"[RaceManager] UI lap diperbarui: {lapText.text}", this);
+        }
+        else
+        {
+            Debug.LogWarning("[RaceManager] lapText belum di-assign di Inspector.", this);
         }
     }
 

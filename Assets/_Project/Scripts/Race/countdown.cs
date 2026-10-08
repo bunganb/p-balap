@@ -1,3 +1,4 @@
+using System.Collections;
 using PBalap.Network;
 using TMPro;
 using UnityEngine;
@@ -11,16 +12,17 @@ public sealed class RaceCountdown : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float countdownDuration = 3f;
 
+    private bool isRaceStarted;
+    private Coroutine countdownRoutine;
+
     public int TimeToStart => Mathf.Max(1, Mathf.CeilToInt(countdownDuration));
 
     private void Awake()
     {
-        if (countdownText == null)
+        if (countdownText != null)
         {
-            countdownText.gameObject.SetActive(false);
+            countdownText.enabled = false;
         }
-
-        // Countdown hanya boleh dimulai oleh alur start race milik Host.
     }
 
     private void OnEnable()
@@ -29,7 +31,43 @@ public sealed class RaceCountdown : MonoBehaviour
         RenderCountdown(-1);
     }
 
+    private void OnDisable()
+    {
+        NetworkKartPlayer.CountdownChanged -= RenderCountdown;
+
+        if (countdownRoutine != null)
+        {
+            StopCoroutine(countdownRoutine);
+            countdownRoutine = null;
+        }
+    }
+
+    public void StartCountdownServerRpc()
+    {
+        if (countdownRoutine == null && !isRaceStarted)
+        {
+            countdownRoutine = StartCoroutine(StartCountdownRoutine());
+        }
+    }
+
     private IEnumerator StartCountdownRoutine()
+    {
+        isRaceStarted = false;
+
+        for (int value = TimeToStart; value > 0; value--)
+        {
+            RenderCountdown(value);
+            yield return new WaitForSeconds(1f);
+        }
+
+        isRaceStarted = true;
+        RenderCountdown(0);
+        yield return new WaitForSeconds(1f);
+        RenderCountdown(-1);
+        countdownRoutine = null;
+    }
+
+    private void RenderCountdown(int value)
     {
         if (countdownText == null)
         {
@@ -41,8 +79,11 @@ public sealed class RaceCountdown : MonoBehaviour
             : value == 0
                 ? "GO!"
                 : string.Empty;
-        // RaceCountdown berada pada GameObject teks yang sama. Menonaktifkan
-        // GameObject akan ikut mematikan script dan melepas event network.
         countdownText.enabled = value >= 0;
+    }
+
+    public bool IsRaceStarted()
+    {
+        return isRaceStarted;
     }
 }
