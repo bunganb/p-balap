@@ -11,9 +11,7 @@ public class PlayerLap : NetworkBehaviour
     );
 
     private float lastLapTime;
-    private bool isFinished = false; // Mencegah lap bertambah setelah crossing finish akhir
-
-    public bool IsFinished => isFinished;
+    private bool isFinished = false; // Mencegah lap bertambah terus saat sudah selesai
 
     public override void OnNetworkSpawn()
     {
@@ -99,9 +97,8 @@ public class PlayerLap : NetworkBehaviour
         lapsCompleted.Value++;
         Debug.Log($"[PlayerLap] LAP BERTAMBAH menjadi {lapsCompleted.Value} pada server.", this);
 
-        // Lap 3/3 masih harus memberi kesempatan satu putaran terakhir.
-        // Crossing berikutnya menyelesaikan balapan, tetapi nilai UI tetap dibatasi oleh RaceManager.
-        if (lapsCompleted.Value > RaceManager.Instance.totalLaps)
+        // Cek apakah pemain INI sudah menyelesaikan 3 Lap
+        if (lapsCompleted.Value >= RaceManager.Instance.totalLaps)
         {
             isFinished = true;
             StopThisCarClientRpc(); // Hentikan mobil pemain ini saja

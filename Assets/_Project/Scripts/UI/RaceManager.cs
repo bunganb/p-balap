@@ -83,7 +83,7 @@ public class RaceManager : NetworkBehaviour
         }
     }
 
-    // Mengecek apakah semua pemain di dalam arena sudah melewati finish akhir
+    // Mengecek apakah semua pemain di dalam arena sudah lap 3
     public void CheckRaceCompletion()
     {
         if (!IsServer) return;
@@ -93,7 +93,7 @@ public class RaceManager : NetworkBehaviour
 
         foreach (var player in allPlayers)
         {
-            if (!player.IsFinished)
+            if (player.lapsCompleted.Value < totalLaps)
             {
                 allFinished = false;
                 break; 
