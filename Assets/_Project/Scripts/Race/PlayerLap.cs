@@ -1,9 +1,12 @@
+using System;
 using UnityEngine;
 using Unity.Netcode;
 using PBalap.Vehicle; // Wajib ditambahkan agar bisa mengambil komponen kontroler mobil
 
 public class PlayerLap : NetworkBehaviour
 {
+    public static event Action LapCompletedOnServer;
+
     public NetworkVariable<int> lapsCompleted = new NetworkVariable<int>(
         0, 
         NetworkVariableReadPermission.Everyone, 
@@ -95,6 +98,7 @@ public class PlayerLap : NetworkBehaviour
 
         lastLapTime = Time.time;
         lapsCompleted.Value++;
+        LapCompletedOnServer?.Invoke();
         Debug.Log($"[PlayerLap] LAP BERTAMBAH menjadi {lapsCompleted.Value} pada server.", this);
 
         // Cek apakah pemain INI sudah menyelesaikan 3 Lap

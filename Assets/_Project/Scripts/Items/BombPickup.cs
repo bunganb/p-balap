@@ -14,6 +14,8 @@ namespace PBalap.Items
         [SerializeField, Min(0.5f)] private float pickupValidationDistance = 4f;
         [SerializeField, Min(0.1f)] private float throwSpeed = 12f;
         [SerializeField, Min(0.1f)] private float throwDuration = 1.5f;
+        [SerializeField, Min(0f)] private float throwArcHeight = 2.5f;
+        [SerializeField, Min(0.1f)] private float hitRadius = 1.25f;
         [SerializeField] private Collider pickupCollider;
 
         private readonly NetworkVariable<bool> isAvailable = new NetworkVariable<bool>(
@@ -23,10 +25,20 @@ namespace PBalap.Items
 
         private Renderer[] pickupRenderers;
         private Coroutine respawnRoutine;
+        private spawnPoint sourceSpawnPoint;
+        private bool isHeld;
         private Vector3 spawnPosition;
         private Quaternion spawnRotation;
 
         public bool IsAvailable => isAvailable.Value;
+
+        public void InitializeSpawnPoint(spawnPoint source)
+        {
+            if (sourceSpawnPoint == null)
+            {
+                sourceSpawnPoint = source;
+            }
+        }
 
         private void Awake()
         {
@@ -116,14 +128,22 @@ namespace PBalap.Items
             }
 
             isAvailable.Value = false;
+            isHeld = true;
             ApplyAvailability(false);
 
-            if (respawnRoutine != null)
+            if (sourceSpawnPoint != null)
             {
-                StopCoroutine(respawnRoutine);
+                sourceSpawnPoint.NotifyItemCollected(this);
             }
+            else
+            {
+                if (respawnRoutine != null)
+                {
+                    StopCoroutine(respawnRoutine);
+                }
 
-            respawnRoutine = StartCoroutine(RespawnAfterDelay());
+                respawnRoutine = StartCoroutine(RespawnAfterDelay());
+            }
             Debug.Log(
                 $"[BombPickup] Player {player.OwnerClientId} picked up {name}. "
                 + $"Inventory={player.BombCount}.");
@@ -132,31 +152,35 @@ namespace PBalap.Items
         public void ThrowFromServer(
             Vector3 position,
             Vector3 direction,
-            NetworkKartPlayer target)
+            NetworkKartPlayer target,
+            NetworkKartPlayer thrower)
         {
-            if (!IsServer || !IsSpawned || isAvailable.Value)
+            if (!IsServer || !IsSpawned || isAvailable.Value || !isHeld)
             {
                 return;
             }
 
+            isHeld = false;
             if (respawnRoutine != null)
             {
                 StopCoroutine(respawnRoutine);
             }
 
-            respawnRoutine = StartCoroutine(ThrowRoutine(position, direction, target));
+            respawnRoutine = StartCoroutine(ThrowRoutine(position, direction, target, thrower));
         }
 
         private IEnumerator ThrowRoutine(
             Vector3 position,
             Vector3 direction,
-            NetworkKartPlayer target)
+            NetworkKartPlayer target,
+            NetworkKartPlayer thrower)
         {
             Vector3 throwDirection = direction.sqrMagnitude > 0.001f
                 ? direction.normalized
                 : transform.forward;
             float elapsed = 0f;
             Vector3 startPosition = position;
+            Vector3 horizontalPosition = startPosition;
 
             transform.SetPositionAndRotation(startPosition, Quaternion.LookRotation(throwDirection));
             SetThrownState();
@@ -164,28 +188,73 @@ namespace PBalap.Items
             while (elapsed < throwDuration)
             {
                 elapsed += Time.deltaTime;
+                float progress = Mathf.Clamp01(elapsed / throwDuration);
                 if (target != null && target.IsSpawned)
                 {
                     Vector3 targetOffset = target.transform.position - transform.position;
+                    targetOffset.y = 0f;
                     if (targetOffset.sqrMagnitude > 0.001f)
                     {
                         throwDirection = targetOffset.normalized;
                     }
                 }
 
-                transform.position += throwDirection * throwSpeed * Time.deltaTime;
+                horizontalPosition += throwDirection * throwSpeed * Time.deltaTime;
+                transform.position = horizontalPosition
+                    + Vector3.up * (Mathf.Sin(progress * Mathf.PI) * throwArcHeight);
                 if (throwDirection.sqrMagnitude > 0.001f)
                 {
                     transform.rotation = Quaternion.LookRotation(throwDirection);
                 }
 
+                NetworkKartPlayer hitPlayer = FindHitPlayer(thrower);
+                if (hitPlayer != null)
+                {
+                    hitPlayer.StunOnServer();
+                    FinishThrownItem();
+                    yield break;
+                }
+
                 yield return null;
+            }
+
+            FinishThrownItem();
+        }
+
+        private void FinishThrownItem()
+        {
+            if (sourceSpawnPoint != null)
+            {
+                if (IsSpawned)
+                {
+                    NetworkObject.Despawn(true);
+                }
+
+                return;
             }
 
             transform.SetPositionAndRotation(spawnPosition, spawnRotation);
             isAvailable.Value = true;
             ApplyAvailability(true);
             respawnRoutine = null;
+        }
+
+        private NetworkKartPlayer FindHitPlayer(NetworkKartPlayer thrower)
+        {
+            Collider[] hitColliders = Physics.OverlapSphere(transform.position, hitRadius);
+            foreach (Collider hitCollider in hitColliders)
+            {
+                NetworkKartPlayer player = hitCollider.GetComponentInParent<NetworkKartPlayer>();
+                if (player != null
+                    && player != thrower
+                    && player.IsSpawned
+                    && player.CanDrive)
+                {
+                    return player;
+                }
+            }
+
+            return null;
         }
 
         private void SetThrownState()

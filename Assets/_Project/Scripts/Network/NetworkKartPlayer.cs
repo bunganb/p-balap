@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using PBalap.Items;
 using PBalap.Vehicle;
 using Unity.Netcode;
@@ -18,6 +19,7 @@ namespace PBalap.Network
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
         [SerializeField, Min(0f)] private float itemTargetingDistance;
+        [SerializeField, Min(0.1f)] private float itemStunDuration = 1.5f;
 
         private readonly NetworkVariable<bool> canDrive = new NetworkVariable<bool>(
             false,
@@ -29,7 +31,13 @@ namespace PBalap.Network
             NetworkVariableReadPermission.Owner,
             NetworkVariableWritePermission.Server);
 
+        private readonly NetworkVariable<bool> isStunned = new NetworkVariable<bool>(
+            false,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+
         private BombPickup heldBomb;
+        private Coroutine stunRoutine;
         private readonly NetworkVariable<int> countdownValue = new NetworkVariable<int>(
             -1,
             NetworkVariableReadPermission.Everyone,
@@ -60,6 +68,7 @@ namespace PBalap.Network
 
         public bool CanDrive => canDrive.Value;
         public int BombCount => bombCount.Value;
+        public bool IsStunned => isStunned.Value;
 
         private void Awake()
         {
@@ -79,8 +88,9 @@ namespace PBalap.Network
         public override void OnNetworkSpawn()
         {
             canDrive.OnValueChanged += HandleCanDriveChanged;
+            isStunned.OnValueChanged += HandleStunnedChanged;
             countdownValue.OnValueChanged += HandleCountdownChanged;
-            ApplyControlState(canDrive.Value);
+            ApplyControlState(canDrive.Value && !isStunned.Value);
             Debug.Log(
                 $"[NetworkKart] Spawned object {NetworkObjectId}, owner {OwnerClientId}, "
                 + $"localOwner={IsOwner}, position={transform.position}.");
@@ -105,7 +115,7 @@ namespace PBalap.Network
 
         private void LateUpdate()
         {
-            if (IsServer && CanDrive)
+            if (IsServer && CanDrive && !IsStunned)
             {
                 snapshotSendAccumulator += Time.deltaTime;
                 if (snapshotSendAccumulator >= SnapshotSendInterval)
@@ -118,7 +128,7 @@ namespace PBalap.Network
 
         private void Update()
         {
-            if (!IsOwner || !CanDrive || BombCount <= 0)
+            if (!IsOwner || !CanDrive || IsStunned || BombCount <= 0)
             {
                 return;
             }
@@ -235,6 +245,7 @@ namespace PBalap.Network
             uint inputSequence)
         {
             if (!CanDrive
+                || IsStunned
                 || inputSequence <= lastProcessedInputSequence
                 || float.IsNaN(steering)
                 || float.IsInfinity(steering)
@@ -251,7 +262,13 @@ namespace PBalap.Network
         public override void OnNetworkDespawn()
         {
             canDrive.OnValueChanged -= HandleCanDriveChanged;
+            isStunned.OnValueChanged -= HandleStunnedChanged;
             countdownValue.OnValueChanged -= HandleCountdownChanged;
+            if (stunRoutine != null)
+            {
+                StopCoroutine(stunRoutine);
+                stunRoutine = null;
+            }
             heldBomb = null;
             ApplyControlState(false);
         }
@@ -277,6 +294,42 @@ namespace PBalap.Network
             heldBomb = bomb;
             bombCount.Value = 1;
             return true;
+        }
+
+        public bool StunOnServer()
+        {
+            if (!IsServer || !IsSpawned || !CanDrive)
+            {
+                return false;
+            }
+
+            if (stunRoutine != null)
+            {
+                StopCoroutine(stunRoutine);
+            }
+
+            vehicleRigidbody.linearVelocity = Vector3.zero;
+            vehicleRigidbody.angularVelocity = Vector3.zero;
+            arcadeController.SetInput(0f, 0f, true);
+            isStunned.Value = true;
+            ApplyControlState(false);
+            stunRoutine = StartCoroutine(ClearStunAfterDelay());
+            return true;
+        }
+
+        private IEnumerator ClearStunAfterDelay()
+        {
+            yield return new WaitForSeconds(itemStunDuration);
+
+            if (IsServer && IsSpawned)
+            {
+                vehicleRigidbody.linearVelocity = Vector3.zero;
+                vehicleRigidbody.angularVelocity = Vector3.zero;
+                isStunned.Value = false;
+                ApplyControlState(canDrive.Value);
+            }
+
+            stunRoutine = null;
         }
 
         private void RequestThrowBomb()
@@ -318,7 +371,8 @@ namespace PBalap.Network
             bomb.ThrowFromServer(
                 transform.position + transform.forward * 2f,
                 transform.forward,
-                target);
+                target,
+                this);
             return true;
         }
 
@@ -375,7 +429,12 @@ namespace PBalap.Network
 
         private void HandleCanDriveChanged(bool previousValue, bool currentValue)
         {
-            ApplyControlState(currentValue);
+            ApplyControlState(currentValue && !isStunned.Value);
+        }
+
+        private void HandleStunnedChanged(bool previousValue, bool currentValue)
+        {
+            ApplyControlState(canDrive.Value && !currentValue);
         }
 
         private void HandleCountdownChanged(int previousValue, int currentValue)
