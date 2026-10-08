@@ -7,9 +7,21 @@ public class FinishLine : MonoBehaviour
     [SerializeField] private Transform directionReference;
     [SerializeField] private float crossingEpsilon = 0.05f;
     [SerializeField] private float minimumForwardVelocityZ = 0.01f;
-    [SerializeField] private bool enableDebugLogs = true;
+    [SerializeField] private bool enableDebugLogs = false;
     private readonly Dictionary<Rigidbody, float> previousSides = new Dictionary<Rigidbody, float>();
     private readonly HashSet<Rigidbody> notifiedRigidbodies = new HashSet<Rigidbody>();
+    private Vector3 allowedDirection;
+
+    private void Awake()
+    {
+        RefreshAllowedDirection();
+    }
+
+    private void RefreshAllowedDirection()
+    {
+        Transform reference = directionReference != null ? directionReference : transform;
+        allowedDirection = Vector3.ProjectOnPlane(reference.forward, Vector3.up).normalized;
+    }
 
     private void OnTriggerEnter(Collider other)
     {
@@ -20,7 +32,6 @@ public class FinishLine : MonoBehaviour
             return;
         }
 
-        Vector3 allowedDirection = GetAllowedDirection();
         if (allowedDirection.sqrMagnitude < 0.001f)
         {
             LogWarning("Arah FinishLine tidak valid. Isi directionReference atau rotasi FinishLine.");
@@ -54,7 +65,6 @@ public class FinishLine : MonoBehaviour
         }
 
         Rigidbody vehicleRigidbody = other.attachedRigidbody;
-        Vector3 allowedDirection = GetAllowedDirection();
         if (allowedDirection.sqrMagnitude < 0.001f)
         {
             return;
@@ -108,6 +118,11 @@ public class FinishLine : MonoBehaviour
         Rigidbody vehicleRigidbody,
         string detectionSource)
     {
+        if (notifiedRigidbodies.Contains(vehicleRigidbody))
+        {
+            return;
+        }
+
         PlayerLap playerLap = other.GetComponentInParent<PlayerLap>();
         if (playerLap != null)
         {
@@ -133,12 +148,6 @@ public class FinishLine : MonoBehaviour
         return Vector3.Dot(
             Vector3.ProjectOnPlane(vehicleRigidbody.position - transform.position, Vector3.up),
             allowedDirection);
-    }
-
-    private Vector3 GetAllowedDirection()
-    {
-        Transform reference = directionReference != null ? directionReference : transform;
-        return Vector3.ProjectOnPlane(reference.forward, Vector3.up).normalized;
     }
 
     private void Log(string message)

@@ -34,9 +34,12 @@ namespace PBalap.Network
         private uint nextInputSequence;
         private uint lastProcessedInputSequence;
         private float inputSendAccumulator;
+        private float lastSentSteering;
+        private float lastSentThrottle;
+        private bool lastSentBrake;
         private bool hasSentInput;
 
-        private const float InputSendRate = 30f;
+        private const float InputSendRate = 60f;
         private const float InputSendInterval = 1f / InputSendRate;
 
         public bool CanDrive => canDrive.Value;
@@ -67,34 +70,48 @@ namespace PBalap.Network
                 + $"localOwner={IsOwner}, position={transform.position}.");
         }
 
-        private void FixedUpdate()
+        private void LateUpdate()
         {
             if (!IsOwner || !CanDrive || IsServer)
             {
                 return;
             }
 
-            inputSendAccumulator += Time.fixedDeltaTime;
+            inputSendAccumulator += Time.deltaTime;
+            bool inputChanged = !hasSentInput
+                || !Mathf.Approximately(lastSentSteering, arcadeController.SteeringInput)
+                || !Mathf.Approximately(lastSentThrottle, arcadeController.ThrottleInput)
+                || lastSentBrake != arcadeController.BrakeInput;
+
+            // Read input after ArcadeVehicleController.Update so a change is sent
+            // in the same rendered frame instead of waiting for the next physics step.
+            if (!inputChanged && inputSendAccumulator < InputSendInterval)
+            {
+                return;
+            }
+
+            SendInputToServer();
+        }
+
+        private void SendInputToServer()
+        {
             if (!hasSentInput)
             {
                 inputSendAccumulator = InputSendInterval;
             }
 
             // Input is state, so a lost unreliable packet is recovered by the next heartbeat.
-            // Keep a strict cap at the NGO tick rate to avoid a reliable-message backlog.
-            if (inputSendAccumulator < InputSendInterval)
-            {
-                return;
-            }
-
-            inputSendAccumulator = Mathf.Min(inputSendAccumulator, InputSendInterval);
-            inputSendAccumulator -= InputSendInterval;
+            // Changes are sent immediately; unchanged input uses the capped heartbeat.
+            inputSendAccumulator = 0f;
+            lastSentSteering = arcadeController.SteeringInput;
+            lastSentThrottle = arcadeController.ThrottleInput;
+            lastSentBrake = arcadeController.BrakeInput;
             hasSentInput = true;
 
             SubmitInputServerRpc(
-                arcadeController.SteeringInput,
-                arcadeController.ThrottleInput,
-                arcadeController.BrakeInput,
+                lastSentSteering,
+                lastSentThrottle,
+                lastSentBrake,
                 ++nextInputSequence);
         }
 

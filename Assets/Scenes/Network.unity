@@ -944,7 +944,7 @@ MonoBehaviour:
   directionReference: {fileID: 0}
   crossingEpsilon: 0.05
   minimumForwardVelocityZ: 0.01
-  enableDebugLogs: 1
+  enableDebugLogs: 0
 --- !u!65 &827941372
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1467,7 +1467,7 @@ MonoBehaviour:
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 1c66da185ca865e4587f0fa9c975068b, type: 2}
-    TickRate: 30
+    TickRate: 60
     ClientConnectionBufferTimeout: 10
     ConnectionApproval: 0
     ConnectionData: 
@@ -1770,7 +1770,7 @@ MonoBehaviour:
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: bff7707c38598f042b484d89fbb87546, type: 2}
-    TickRate: 30
+    TickRate: 60
     ClientConnectionBufferTimeout: 10
     ConnectionApproval: 1
     ConnectionData: 
