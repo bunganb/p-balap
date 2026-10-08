@@ -944,7 +944,7 @@ MonoBehaviour:
   directionReference: {fileID: 0}
   crossingEpsilon: 0.05
   minimumForwardVelocityZ: 0.01
-  enableDebugLogs: 1
+  enableDebugLogs: 0
 --- !u!65 &827941372
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1481,11 +1481,11 @@ MonoBehaviour:
     RpcHashSize: 0
     LoadSceneTimeOut: 120
     SpawnTimeout: 10
-    EnableNetworkLogs: 1
+    EnableNetworkLogs: 0
     NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
-    NetworkProfilingMetrics: 1
+    NetworkProfilingMetrics: 0
     OldPrefabList: []
   RunInBackground: 1
   LogLevel: 1
@@ -1784,11 +1784,11 @@ MonoBehaviour:
     RpcHashSize: 0
     LoadSceneTimeOut: 120
     SpawnTimeout: 10
-    EnableNetworkLogs: 1
+    EnableNetworkLogs: 0
     NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
-    NetworkProfilingMetrics: 1
+    NetworkProfilingMetrics: 0
     OldPrefabList: []
   RunInBackground: 1
   LogLevel: 1

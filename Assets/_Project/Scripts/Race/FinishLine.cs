@@ -7,7 +7,7 @@ public class FinishLine : MonoBehaviour
     [SerializeField] private Transform directionReference;
     [SerializeField] private float crossingEpsilon = 0.05f;
     [SerializeField] private float minimumForwardVelocityZ = 0.01f;
-    [SerializeField] private bool enableDebugLogs = true;
+    [SerializeField] private bool enableDebugLogs;
     private readonly Dictionary<Rigidbody, float> previousSides = new Dictionary<Rigidbody, float>();
     private readonly HashSet<Rigidbody> notifiedRigidbodies = new HashSet<Rigidbody>();
 

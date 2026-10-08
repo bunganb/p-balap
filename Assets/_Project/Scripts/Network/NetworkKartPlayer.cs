@@ -35,9 +35,13 @@ namespace PBalap.Network
         private uint lastProcessedInputSequence;
         private const int InputHistoryCapacity = 128;
         private readonly InputFrame[] inputHistory = new InputFrame[InputHistoryCapacity];
+        private float inputSendAccumulator;
         private float snapshotSendAccumulator;
         private uint lastReconciledSequence;
 
+        // Physics runs at 50 Hz, while the NetworkManager is configured for 30 Hz.
+        // Sending more RPCs than network ticks only queues redundant input packets.
+        private const float InputSendInterval = 1f / 30f;
         private const float SnapshotSendInterval = 1f / 20f;
         private const float ReconciliationPositionThreshold = 0.15f;
         private const float ReconciliationRotationThreshold = 3f;
@@ -85,6 +89,13 @@ namespace PBalap.Network
                 return;
             }
 
+            inputSendAccumulator += Time.fixedDeltaTime;
+            if (inputSendAccumulator < InputSendInterval)
+            {
+                return;
+            }
+
+            inputSendAccumulator -= InputSendInterval;
             SendInputToServer();
         }
 
@@ -196,7 +207,7 @@ namespace PBalap.Network
             }
         }
 
-        [ServerRpc(RequireOwnership = true)]
+        [ServerRpc(RequireOwnership = true, Delivery = RpcDelivery.Unreliable)]
         private void SubmitInputServerRpc(
             float steering,
             float throttle,
