@@ -229,6 +229,52 @@ namespace PBalap.Vehicle
             driftBoostTimer = Mathf.Max(0f, driftBoostTimer - Time.deltaTime);
         }
 
+        public void ReplayMovementStep(float deltaTime)
+        {
+            if (vehicleRigidbody == null || !simulationEnabled)
+            {
+                return;
+            }
+
+            Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
+            bool isBraking = brakeInput && !isDrifting;
+            bool isTurning = Mathf.Abs(steeringInput) > 0.01f;
+            float targetSpeed = isBraking ? 0f : throttleInput * maxSpeed;
+            float speedDifference = targetSpeed - localVelocity.z;
+            if ((isDrifting || isTurning && !brakeInput) && Mathf.Abs(localVelocity.z) > 0.01f)
+            {
+                speedDifference -= Mathf.Sign(localVelocity.z) / Mathf.Max(brakeStrength, 0.01f);
+            }
+
+            float currentAcceleration = acceleration
+                * (driftBoostTimer > 0f ? driftBoostMultiplier : 1f);
+            float forceLimit = isBraking ? brakeStrength : currentAcceleration;
+            float speedChange = Mathf.Clamp(
+                speedDifference,
+                -forceLimit * deltaTime,
+                forceLimit * deltaTime);
+            Vector3 flatForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            Vector3 sidewaysVelocity = transform.right * localVelocity.x;
+            Vector3 velocity = vehicleRigidbody.linearVelocity
+                + flatForward * (speedChange)
+                - sidewaysVelocity * (isDrifting ? driftFriction : friction) * deltaTime;
+            Vector3 planarVelocity = Vector3.ProjectOnPlane(velocity, Vector3.up);
+            if (planarVelocity.magnitude > maxSpeed)
+            {
+                velocity = planarVelocity.normalized * maxSpeed + Vector3.up * velocity.y;
+            }
+
+            vehicleRigidbody.linearVelocity = velocity;
+            vehicleRigidbody.position += velocity * deltaTime;
+            float forwardSpeed = Vector3.Dot(velocity, transform.forward);
+            float speedFactor = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / maxSpeed);
+            float reverseFactor = forwardSpeed < 0f ? -1f : 1f;
+            float steeringMultiplier = isDrifting ? driftSteeringMultiplier : 1f;
+            float turnAmount = steeringInput * steering * steeringMultiplier
+                * speedFactor * reverseFactor * deltaTime;
+            vehicleRigidbody.rotation *= Quaternion.Euler(0f, turnAmount, 0f);
+        }
+
         private void ApplyArcadeMovement()
         {
             Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);

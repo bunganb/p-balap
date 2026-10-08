@@ -34,14 +34,22 @@ namespace PBalap.Network
 
         private uint nextInputSequence;
         private uint lastProcessedInputSequence;
-        private float inputSendAccumulator;
-        private float lastSentSteering;
-        private float lastSentThrottle;
-        private bool lastSentBrake;
-        private bool hasSentInput;
+        private const int InputHistoryCapacity = 128;
+        private readonly InputFrame[] inputHistory = new InputFrame[InputHistoryCapacity];
+        private float snapshotSendAccumulator;
+        private uint lastReconciledSequence;
 
-        private const float InputSendRate = 60f;
-        private const float InputSendInterval = 1f / InputSendRate;
+        private const float SnapshotSendInterval = 1f / 20f;
+        private const float ReconciliationPositionThreshold = 0.15f;
+        private const float ReconciliationRotationThreshold = 3f;
+
+        private struct InputFrame
+        {
+            public uint Sequence;
+            public float Steering;
+            public float Throttle;
+            public bool Brake;
+        }
 
         public bool CanDrive => canDrive.Value;
         public int BombCount => bombCount.Value;
@@ -77,29 +85,28 @@ namespace PBalap.Network
                 + $"localOwner={IsOwner}, position={transform.position}.");
         }
 
-        private void LateUpdate()
+        private void FixedUpdate()
         {
-            ApplyTransformPresentation();
-
             if (!IsOwner || !CanDrive || IsServer)
             {
                 return;
             }
 
-            inputSendAccumulator += Time.deltaTime;
-            bool inputChanged = !hasSentInput
-                || !Mathf.Approximately(lastSentSteering, arcadeController.SteeringInput)
-                || !Mathf.Approximately(lastSentThrottle, arcadeController.ThrottleInput)
-                || lastSentBrake != arcadeController.BrakeInput;
-
-            // Read input after ArcadeVehicleController.Update so a change is sent
-            // in the same rendered frame instead of waiting for the next physics step.
-            if (!inputChanged && inputSendAccumulator < InputSendInterval)
-            {
-                return;
-            }
-
             SendInputToServer();
+        }
+
+        private void LateUpdate()
+        {
+            ApplyTransformPresentation();
+            if (IsServer && CanDrive)
+            {
+                snapshotSendAccumulator += Time.deltaTime;
+                if (snapshotSendAccumulator >= SnapshotSendInterval)
+                {
+                    snapshotSendAccumulator = 0f;
+                    SendAuthoritativeSnapshot();
+                }
+            }
         }
 
         private void ApplyTransformPresentation()
@@ -117,24 +124,97 @@ namespace PBalap.Network
 
         private void SendInputToServer()
         {
-            if (!hasSentInput)
-            {
-                inputSendAccumulator = InputSendInterval;
-            }
+            float steering = arcadeController.SteeringInput;
+            float throttle = arcadeController.ThrottleInput;
+            bool brake = arcadeController.BrakeInput;
 
-            // Input is state, so a lost unreliable packet is recovered by the next heartbeat.
-            // Changes are sent immediately; unchanged input uses the capped heartbeat.
-            inputSendAccumulator = 0f;
-            lastSentSteering = arcadeController.SteeringInput;
-            lastSentThrottle = arcadeController.ThrottleInput;
-            lastSentBrake = arcadeController.BrakeInput;
-            hasSentInput = true;
+            uint sequence = ++nextInputSequence;
+            inputHistory[(int)(sequence % InputHistoryCapacity)] = new InputFrame
+            {
+                Sequence = sequence,
+                Steering = steering,
+                Throttle = throttle,
+                Brake = brake
+            };
 
             SubmitInputServerRpc(
-                lastSentSteering,
-                lastSentThrottle,
-                lastSentBrake,
-                ++nextInputSequence);
+                steering,
+                throttle,
+                brake,
+                sequence);
+        }
+
+        private void SendAuthoritativeSnapshot()
+        {
+            if (!IsServer || !IsSpawned)
+            {
+                return;
+            }
+
+            ClientRpcParams target = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new[] { OwnerClientId }
+                }
+            };
+            ReconcileClientRpc(
+                transform.position,
+                transform.rotation,
+                vehicleRigidbody.linearVelocity,
+                lastProcessedInputSequence,
+                target);
+        }
+
+        [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+        private void ReconcileClientRpc(
+            Vector3 serverPosition,
+            Quaternion serverRotation,
+            Vector3 serverVelocity,
+            uint acknowledgedSequence,
+            ClientRpcParams clientRpcParams = default)
+        {
+            if (!IsOwner || IsServer || acknowledgedSequence <= lastReconciledSequence)
+            {
+                return;
+            }
+
+            if (acknowledgedSequence > nextInputSequence)
+            {
+                return;
+            }
+
+            lastReconciledSequence = acknowledgedSequence;
+            float positionError = Vector3.Distance(transform.position, serverPosition);
+            float rotationError = Quaternion.Angle(transform.rotation, serverRotation);
+            if (positionError <= ReconciliationPositionThreshold
+                && rotationError <= ReconciliationRotationThreshold)
+            {
+                return;
+            }
+
+            transform.SetPositionAndRotation(serverPosition, serverRotation);
+            vehicleRigidbody.linearVelocity = serverVelocity;
+            vehicleRigidbody.angularVelocity = Vector3.zero;
+
+            uint firstPendingSequence = acknowledgedSequence + 1;
+            uint lastPendingSequence = nextInputSequence;
+            if (lastPendingSequence - firstPendingSequence + 1 > InputHistoryCapacity)
+            {
+                firstPendingSequence = lastPendingSequence - InputHistoryCapacity + 1;
+            }
+
+            for (uint sequence = firstPendingSequence; sequence <= lastPendingSequence; sequence++)
+            {
+                InputFrame frame = inputHistory[(int)(sequence % InputHistoryCapacity)];
+                if (frame.Sequence != sequence)
+                {
+                    continue;
+                }
+
+                arcadeController.SetInput(frame.Steering, frame.Throttle, frame.Brake);
+                arcadeController.ReplayMovementStep(Time.fixedDeltaTime);
+            }
         }
 
         [ServerRpc(RequireOwnership = true, Delivery = RpcDelivery.Unreliable)]
