@@ -11,6 +11,8 @@ public class RaceCountdown : NetworkBehaviour
     [Header("Settings")]
     [SerializeField] private float countdownDuration = 3f;
 
+    public int TimeToStart => Mathf.Max(1, Mathf.CeilToInt(countdownDuration));
+
     // NetworkVariable agar angka countdown tersinkron otomatis ke semua Client
     private NetworkVariable<int> currentCountdown = new NetworkVariable<int>(-1);
     private NetworkVariable<bool> isRaceStarted = new NetworkVariable<bool>(false);
