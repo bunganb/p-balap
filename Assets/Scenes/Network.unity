@@ -506,13 +506,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 428480171}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7784e9b3a78e204bb843a62be653acd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RaceCountdown
   ShowTopMostFoldoutHeaderGroup: 1
-  countdownText: {fileID: 0}
+  countdownText: {fileID: 428480174}
   countdownDuration: 3
 --- !u!114 &428480174
 MonoBehaviour:
@@ -934,7 +934,6 @@ GameObject:
   m_Component:
   - component: {fileID: 604912950}
   - component: {fileID: 604912951}
-  - component: {fileID: 604912952}
   - component: {fileID: 604912953}
   m_Layer: 0
   m_Name: gameManager
@@ -985,21 +984,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &604912952
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 604912949}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a91f6705ea938d45bb31a95f743d697, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Countdown
-  ShowTopMostFoldoutHeaderGroup: 1
-  countdownText: {fileID: 428480174}
-  timeToStart: 3
 --- !u!114 &604912953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1930,6 +1914,7 @@ MonoBehaviour:
   targetFrameRate: 60
   networkManager: {fileID: 2000000003}
   unityTransport: {fileID: 2000000002}
+  countdown: {fileID: 428480173}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

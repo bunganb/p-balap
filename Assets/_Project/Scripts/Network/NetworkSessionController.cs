@@ -53,7 +53,7 @@ namespace PBalap.Network
         [Header("Scene References")]
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport unityTransport;
-        [SerializeField] private Countdown countdown;
+        [SerializeField] private RaceCountdown countdown;
 
         private bool operationInProgress;
         private bool joinedAsClient;
@@ -119,7 +119,7 @@ namespace PBalap.Network
 
             if (countdown == null)
             {
-                countdown = FindAnyObjectByType<Countdown>();
+                countdown = FindAnyObjectByType<RaceCountdown>();
             }
 
             if (networkManager != null)
