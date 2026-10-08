@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
+using PBalap.Network;
 
 public class RaceManager : NetworkBehaviour
 {
@@ -12,11 +13,45 @@ public class RaceManager : NetworkBehaviour
     [Header("Referensi UI")]
     [SerializeField] private TextMeshProUGUI lapText;
     [SerializeField] private TextMeshProUGUI raceOverText;
+    private bool showingPreRaceStatus;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+    }
+
+    private void Update()
+    {
+        if (raceOverText == null)
+        {
+            return;
+        }
+
+        NetworkSessionController session = FindAnyObjectByType<NetworkSessionController>();
+        if (session == null || !session.IsConnected || session.IsRaceStarted || session.IsRaceStartInProgress)
+        {
+            if (showingPreRaceStatus)
+            {
+                raceOverText.text = "";
+                showingPreRaceStatus = false;
+            }
+
+            return;
+        }
+
+        if (session.IsHostingSession)
+        {
+            raceOverText.text = session.ConnectedPlayerCount >= session.MinimumPlayersRequired
+                ? "PRESS ENTER TO START"
+                : "WAITING FOR PLAYERS...";
+        }
+        else
+        {
+            raceOverText.text = "WAITING FOR HOST TO START...";
+        }
+
+        showingPreRaceStatus = true;
     }
 
     public override void OnNetworkSpawn()
@@ -38,6 +73,7 @@ public class RaceManager : NetworkBehaviour
     {
         if (raceOverText != null)
         {
+            showingPreRaceStatus = false;
             raceOverText.text = "YOU FINISHED!\nWAITING FOR OTHERS...";
         }
     }
@@ -47,7 +83,7 @@ public class RaceManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        PlayerLap[] allPlayers = FindObjectsByType<PlayerLap>(FindObjectsSortMode.None);
+        PlayerLap[] allPlayers = FindObjectsByType<PlayerLap>();
         bool allFinished = true;
 
         foreach (var player in allPlayers)
