@@ -226,9 +226,9 @@ MonoBehaviour:
   RotationInterpolationType: 1
   ScaleInterpolationType: 0
   PositionLerpSmoothing: 1
-  PositionMaxInterpolationTime: 0.1
+  PositionMaxInterpolationTime: 0.25
   RotationLerpSmoothing: 1
-  RotationMaxInterpolationTime: 0.1
+  RotationMaxInterpolationTime: 0.2
   ScaleLerpSmoothing: 1
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 1
@@ -268,7 +268,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   arcadeController: {fileID: 5004514833349580930}
   vehicleRigidbody: {fileID: 3644149740565936743}
-  networkTransform: {fileID: 9100000000000000002}
 --- !u!33 &4847724968220651919
 MeshFilter:
   m_ObjectHideFlags: 0
