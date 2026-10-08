@@ -55,6 +55,8 @@ namespace PBalap.Vehicle
         private bool controlEnabled = true;
         private bool simulationEnabled = true;
 
+        private float currentCameraYaw;
+
         public float Acceleration => acceleration;
         public float MaxSpeed => maxSpeed;
         public float Steering => steering;
@@ -83,13 +85,12 @@ namespace PBalap.Vehicle
                 cameraRig = vehicleCamera.transform.parent;
             }
 
-            // Keep the follow rig in world space. If it remains parented to the
-            // Rigidbody kart, the kart rotation is inherited before LateUpdate
-            // applies its own look rotation and the camera can pitch downward.
             if (cameraRig != null && cameraRig != transform && cameraRig.IsChildOf(transform))
             {
                 cameraRig.SetParent(null, true);
             }
+
+            currentCameraYaw = transform.eulerAngles.y;
 
             ReplaceVehicleVisual();
             BindWheelVisuals();
@@ -165,8 +166,6 @@ namespace PBalap.Vehicle
 
             if (keyboard != null)
             {
-                // Match the movement used by the Michael scene: the kart moves
-                // forward automatically, while holding S switches to reverse.
                 throttle = keyboard.sKey.isPressed ? -1f : 1f;
                 steering = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
@@ -311,23 +310,21 @@ namespace PBalap.Vehicle
                 ? cameraRig
                 : vehicleCamera.transform;
 
-            Quaternion cameraYawRotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+            // Smooth-kan sudut putar horizontal (kiri/kanan) secara independen
+            float rotationSmoothing = 1f - Mathf.Exp(-Mathf.Max(cameraRotationSmoothSpeed, 0f) * Time.deltaTime);
+            currentCameraYaw = Mathf.LerpAngle(currentCameraYaw, transform.eulerAngles.y, rotationSmoothing);
+
+            Quaternion cameraYawRotation = Quaternion.Euler(0f, currentCameraYaw, 0f);
+
+            // Posisi kamera menempel langsung pada posisi kart (maju/mundur instant tanpa delay)
             Vector3 desiredPosition = transform.position + cameraYawRotation * cameraOffset;
-            // Rigidbody interpolation already provides a render-time pose. Follow
-            // that pose directly so the local camera does not add another delay
-            // or consume stepped FixedUpdate velocity as a prediction offset.
             followTransform.position = desiredPosition;
 
-            Vector3 lookDirection = transform.position + Vector3.up * cameraLookHeight - followTransform.position;
+            // Kamera selalu menghadap ke kart secara presisi tanpa lag rotasi
+            Vector3 lookDirection = (transform.position + Vector3.up * cameraLookHeight) - followTransform.position;
             if (lookDirection.sqrMagnitude > 0.001f)
             {
-                Quaternion desiredRotation = Quaternion.LookRotation(lookDirection, Vector3.up);
-                float rotationSmoothing = 1f - Mathf.Exp(
-                    -Mathf.Max(cameraRotationSmoothSpeed, 0f) * Time.deltaTime);
-                followTransform.rotation = Quaternion.Slerp(
-                    followTransform.rotation,
-                    desiredRotation,
-                    rotationSmoothing);
+                followTransform.rotation = Quaternion.LookRotation(lookDirection, Vector3.up);
             }
         }
 
