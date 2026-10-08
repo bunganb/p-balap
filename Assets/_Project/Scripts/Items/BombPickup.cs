@@ -12,6 +12,8 @@ namespace PBalap.Items
     {
         [SerializeField, Min(0.1f)] private float respawnDelay = 8f;
         [SerializeField, Min(0.5f)] private float pickupValidationDistance = 4f;
+        [SerializeField, Min(0.1f)] private float throwSpeed = 12f;
+        [SerializeField, Min(0.1f)] private float throwDuration = 1.5f;
         [SerializeField] private Collider pickupCollider;
 
         private readonly NetworkVariable<bool> isAvailable = new NetworkVariable<bool>(
@@ -21,6 +23,8 @@ namespace PBalap.Items
 
         private Renderer[] pickupRenderers;
         private Coroutine respawnRoutine;
+        private Vector3 spawnPosition;
+        private Quaternion spawnRotation;
 
         public bool IsAvailable => isAvailable.Value;
 
@@ -32,6 +36,8 @@ namespace PBalap.Items
             }
 
             pickupRenderers = GetComponentsInChildren<Renderer>(true);
+            spawnPosition = transform.position;
+            spawnRotation = transform.rotation;
         }
 
         public override void OnNetworkSpawn()
@@ -104,7 +110,7 @@ namespace PBalap.Items
 
             float maximumDistanceSqr = pickupValidationDistance * pickupValidationDistance;
             if ((player.transform.position - transform.position).sqrMagnitude > maximumDistanceSqr
-                || !player.TryStoreBombOnServer())
+                || !player.AssignBombOnServer(this))
             {
                 return;
             }
@@ -121,6 +127,86 @@ namespace PBalap.Items
             Debug.Log(
                 $"[BombPickup] Player {player.OwnerClientId} picked up {name}. "
                 + $"Inventory={player.BombCount}.");
+        }
+
+        public void ThrowFromServer(
+            Vector3 position,
+            Vector3 direction,
+            NetworkKartPlayer target)
+        {
+            if (!IsServer || !IsSpawned || isAvailable.Value)
+            {
+                return;
+            }
+
+            if (respawnRoutine != null)
+            {
+                StopCoroutine(respawnRoutine);
+            }
+
+            respawnRoutine = StartCoroutine(ThrowRoutine(position, direction, target));
+        }
+
+        private IEnumerator ThrowRoutine(
+            Vector3 position,
+            Vector3 direction,
+            NetworkKartPlayer target)
+        {
+            Vector3 throwDirection = direction.sqrMagnitude > 0.001f
+                ? direction.normalized
+                : transform.forward;
+            float elapsed = 0f;
+            Vector3 startPosition = position;
+
+            transform.SetPositionAndRotation(startPosition, Quaternion.LookRotation(throwDirection));
+            SetThrownState();
+
+            while (elapsed < throwDuration)
+            {
+                elapsed += Time.deltaTime;
+                if (target != null && target.IsSpawned)
+                {
+                    Vector3 targetOffset = target.transform.position - transform.position;
+                    if (targetOffset.sqrMagnitude > 0.001f)
+                    {
+                        throwDirection = targetOffset.normalized;
+                    }
+                }
+
+                transform.position += throwDirection * throwSpeed * Time.deltaTime;
+                if (throwDirection.sqrMagnitude > 0.001f)
+                {
+                    transform.rotation = Quaternion.LookRotation(throwDirection);
+                }
+
+                yield return null;
+            }
+
+            transform.SetPositionAndRotation(spawnPosition, spawnRotation);
+            isAvailable.Value = true;
+            ApplyAvailability(true);
+            respawnRoutine = null;
+        }
+
+        private void SetThrownState()
+        {
+            if (pickupCollider != null)
+            {
+                pickupCollider.enabled = false;
+            }
+
+            if (pickupRenderers == null)
+            {
+                return;
+            }
+
+            foreach (Renderer pickupRenderer in pickupRenderers)
+            {
+                if (pickupRenderer != null)
+                {
+                    pickupRenderer.enabled = true;
+                }
+            }
         }
 
         private IEnumerator RespawnAfterDelay()

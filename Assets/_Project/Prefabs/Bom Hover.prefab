@@ -77,6 +77,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
       insertIndex: -1
       addedObject: {fileID: 428139116708751369}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 428139116708751370}
   m_SourcePrefab: {fileID: 100100000, guid: 92f4dc04a885f0349af0c1a866403f99, type: 3}
 --- !u!1 &8904900432619358096 stripped
 GameObject:
@@ -114,7 +117,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
   GlobalObjectIdHash: 3044586023
   InScenePlacedSourceGlobalObjectIdHash: 1687963437
@@ -147,3 +150,48 @@ MonoBehaviour:
   respawnDelay: 8
   pickupValidationDistance: 4
   pickupCollider: {fileID: 4524575342976108793}
+--- !u!114 &428139116708751370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8904900432619358096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b30b70a43e9242a2b7f0033be9c7c031, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PBalap.Network.OwnerNetworkTransform
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 1
+  RotationInterpolationType: 1
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.25
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.2
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 1
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 1
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 0
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 0
+  SyncScaleX: 0
+  SyncScaleY: 0
+  SyncScaleZ: 0
+  PositionThreshold: 0.05
+  RotAngleThreshold: 0.5
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0

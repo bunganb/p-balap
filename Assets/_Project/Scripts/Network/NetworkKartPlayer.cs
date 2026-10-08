@@ -1,7 +1,9 @@
 using System;
+using PBalap.Items;
 using PBalap.Vehicle;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace PBalap.Network
 {
@@ -15,6 +17,7 @@ namespace PBalap.Network
 
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
+        [SerializeField, Min(0f)] private float itemTargetingDistance;
 
         private readonly NetworkVariable<bool> canDrive = new NetworkVariable<bool>(
             false,
@@ -26,6 +29,7 @@ namespace PBalap.Network
             NetworkVariableReadPermission.Owner,
             NetworkVariableWritePermission.Server);
 
+        private BombPickup heldBomb;
         private readonly NetworkVariable<int> countdownValue = new NetworkVariable<int>(
             -1,
             NetworkVariableReadPermission.Everyone,
@@ -109,6 +113,22 @@ namespace PBalap.Network
                     snapshotSendAccumulator = 0f;
                     SendAuthoritativeSnapshot();
                 }
+            }
+        }
+
+        private void Update()
+        {
+            if (!IsOwner || !CanDrive || BombCount <= 0)
+            {
+                return;
+            }
+
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null
+                && (keyboard.enterKey.wasPressedThisFrame
+                    || keyboard.numpadEnterKey.wasPressedThisFrame))
+            {
+                RequestThrowBomb();
             }
         }
 
@@ -232,6 +252,7 @@ namespace PBalap.Network
         {
             canDrive.OnValueChanged -= HandleCanDriveChanged;
             countdownValue.OnValueChanged -= HandleCountdownChanged;
+            heldBomb = null;
             ApplyControlState(false);
         }
 
@@ -246,15 +267,99 @@ namespace PBalap.Network
             canDrive.Value = enabled;
         }
 
-        public bool TryStoreBombOnServer()
+        public bool AssignBombOnServer(BombPickup bomb)
         {
-            if (!IsServer || !IsSpawned)
+            if (!IsServer || !IsSpawned || bomb == null || bombCount.Value > 0)
             {
                 return false;
             }
 
-            bombCount.Value++;
+            heldBomb = bomb;
+            bombCount.Value = 1;
             return true;
+        }
+
+        private void RequestThrowBomb()
+        {
+            if (!IsSpawned || !IsOwner || BombCount <= 0)
+            {
+                return;
+            }
+
+            if (IsServer)
+            {
+                TryThrowBombOnServer();
+                return;
+            }
+
+            ThrowBombServerRpc();
+        }
+
+        [Rpc(
+            SendTo.Server,
+            Delivery = RpcDelivery.Reliable,
+            InvokePermission = RpcInvokePermission.Owner)]
+        private void ThrowBombServerRpc()
+        {
+            TryThrowBombOnServer();
+        }
+
+        private bool TryThrowBombOnServer()
+        {
+            if (!IsServer || !IsSpawned || bombCount.Value <= 0 || heldBomb == null)
+            {
+                return false;
+            }
+
+            BombPickup bomb = heldBomb;
+            NetworkKartPlayer target = FindNearestFrontTargetOnServer();
+            heldBomb = null;
+            bombCount.Value = 0;
+            bomb.ThrowFromServer(
+                transform.position + transform.forward * 2f,
+                transform.forward,
+                target);
+            return true;
+        }
+
+        private NetworkKartPlayer FindNearestFrontTargetOnServer()
+        {
+            if (!IsServer || !IsSpawned)
+            {
+                return null;
+            }
+
+            NetworkKartPlayer nearestTarget = null;
+            float nearestDistanceSqr = itemTargetingDistance > 0f
+                ? itemTargetingDistance * itemTargetingDistance
+                : float.PositiveInfinity;
+
+            NetworkKartPlayer[] players = FindObjectsByType<NetworkKartPlayer>(
+                FindObjectsInactive.Exclude);
+            foreach (NetworkKartPlayer player in players)
+            {
+                if (player == null
+                    || player == this
+                    || !player.IsSpawned
+                    || !player.CanDrive)
+                {
+                    continue;
+                }
+
+                Vector3 offset = player.transform.position - transform.position;
+                float distanceSqr = offset.sqrMagnitude;
+                if (distanceSqr <= 0.001f
+                    || distanceSqr >= nearestDistanceSqr
+                    || Vector3.Dot(transform.forward, offset.normalized) <= 0f)
+                {
+                    continue;
+                }
+
+                nearestTarget = player;
+                nearestDistanceSqr = distanceSqr;
+            }
+
+            return nearestTarget;
         }
 
         public bool SetCountdownOnServer(int value)
