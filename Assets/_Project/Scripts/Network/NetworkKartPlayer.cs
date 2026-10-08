@@ -15,6 +15,7 @@ namespace PBalap.Network
 
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
+        [SerializeField] private OwnerNetworkTransform networkTransform;
 
         private readonly NetworkVariable<bool> canDrive = new NetworkVariable<bool>(
             false,
@@ -57,6 +58,11 @@ namespace PBalap.Network
                 vehicleRigidbody = GetComponent<Rigidbody>();
             }
 
+            if (networkTransform == null)
+            {
+                networkTransform = GetComponent<OwnerNetworkTransform>();
+            }
+
             ApplyControlState(false);
         }
 
@@ -65,6 +71,7 @@ namespace PBalap.Network
             canDrive.OnValueChanged += HandleCanDriveChanged;
             countdownValue.OnValueChanged += HandleCountdownChanged;
             ApplyControlState(canDrive.Value);
+            ApplyTransformPresentation();
             Debug.Log(
                 $"[NetworkKart] Spawned object {NetworkObjectId}, owner {OwnerClientId}, "
                 + $"localOwner={IsOwner}, position={transform.position}.");
@@ -72,6 +79,8 @@ namespace PBalap.Network
 
         private void LateUpdate()
         {
+            ApplyTransformPresentation();
+
             if (!IsOwner || !CanDrive || IsServer)
             {
                 return;
@@ -91,6 +100,19 @@ namespace PBalap.Network
             }
 
             SendInputToServer();
+        }
+
+        private void ApplyTransformPresentation()
+        {
+            if (networkTransform == null || IsServer)
+            {
+                return;
+            }
+
+            // The local owner already predicts its Rigidbody immediately. Keep
+            // server snapshots for correction, but do not display the remote
+            // interpolation buffer on top of that prediction.
+            networkTransform.Interpolate = !IsOwner;
         }
 
         private void SendInputToServer()
@@ -140,6 +162,10 @@ namespace PBalap.Network
         {
             canDrive.OnValueChanged -= HandleCanDriveChanged;
             countdownValue.OnValueChanged -= HandleCountdownChanged;
+            if (networkTransform != null && !IsServer)
+            {
+                networkTransform.Interpolate = true;
+            }
             ApplyControlState(false);
         }
 

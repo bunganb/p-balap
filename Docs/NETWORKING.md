@@ -99,6 +99,10 @@ terlambat atau datang berurutan salah tetap ditolak melalui sequence number. Pen
 ini mengurangi paket dari frekuensi physics (biasanya 50 Hz) tanpa mengurangi kontrol,
 drift, rem, atau validasi server.
 
+Pemilik kart menggunakan prediksi lokal tanpa buffer interpolasi tambahan. Snapshot server
+tetap diterima sebagai koreksi authoritative, sedangkan kart pemain lain tetap
+diinterpolasikan agar gerakannya halus.
+
 | Kebutuhan | Gunakan |
 | --- | --- |
 | Hanya untuk perangkat lokal | field C# biasa |

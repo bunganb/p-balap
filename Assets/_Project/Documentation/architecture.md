@@ -11,6 +11,6 @@
    server applies the accepted input to its authoritative Rigidbody, and
    `OwnerNetworkTransform` replicates authoritative snapshots back to clients.
    Remote vehicles use NetworkTransform interpolation and the owner is corrected by
-   the    authoritative snapshot stream. Snapshot interpolation is bounded to 100 ms so
-   server corrections do not add an unnecessary quarter-second of visual delay.
+   the       authoritative snapshot stream. Remote snapshot interpolation is bounded to 100 ms;
+   the local owner does not add that buffer on top of client-side prediction.
 6. Debug UI exposes ping, tick, packet loss, and correction distance.

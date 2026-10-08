@@ -268,6 +268,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   arcadeController: {fileID: 5004514833349580930}
   vehicleRigidbody: {fileID: 3644149740565936743}
+  networkTransform: {fileID: 9100000000000000002}
 --- !u!33 &4847724968220651919
 MeshFilter:
   m_ObjectHideFlags: 0
