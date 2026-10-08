@@ -94,8 +94,11 @@ namespace PBalap.Network
         public IReadOnlyList<ulong> ConnectedClientIds => connectedClientIds;
         public IReadOnlyList<string> ActivityMessages => activityMessages;
         public bool IsHost => networkManager != null && networkManager.IsHost;
+        public bool IsHostingSession => hostingSession;
         public bool IsConnected => networkManager != null && networkManager.IsListening;
         public bool IsRaceStarted => raceStarted;
+        public bool IsRaceStartInProgress => raceStartInProgress;
+        public int MinimumPlayersRequired => MinimumPlayers;
         public int ConnectedPlayerCount => networkManager != null && networkManager.IsListening
             ? networkManager.ConnectedClients.Count
             : 0;
@@ -151,6 +154,21 @@ namespace PBalap.Network
         private void OnApplicationQuit()
         {
             applicationQuitting = true;
+        }
+
+        private void Update()
+        {
+            if (!hostingSession
+                || networkManager == null
+                || !networkManager.IsHost
+                || raceStarted
+                || raceStartInProgress
+                || (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter)))
+            {
+                return;
+            }
+
+            StartRace();
         }
 
         private void OnDestroy()
