@@ -54,6 +54,9 @@ namespace PBalap.Vehicle
         private float driftBoostTimer;
         private bool controlEnabled = true;
         private bool simulationEnabled = true;
+        private bool localInputEnabled = true;
+
+        private float currentCameraYaw;
 
         public float Acceleration => acceleration;
         public float MaxSpeed => maxSpeed;
@@ -83,13 +86,12 @@ namespace PBalap.Vehicle
                 cameraRig = vehicleCamera.transform.parent;
             }
 
-            // Keep the follow rig in world space. If it remains parented to the
-            // Rigidbody kart, the kart rotation is inherited before LateUpdate
-            // applies its own look rotation and the camera can pitch downward.
             if (cameraRig != null && cameraRig != transform && cameraRig.IsChildOf(transform))
             {
                 cameraRig.SetParent(null, true);
             }
+
+            currentCameraYaw = transform.eulerAngles.y;
 
             ReplaceVehicleVisual();
             BindWheelVisuals();
@@ -152,7 +154,7 @@ namespace PBalap.Vehicle
 
         private void Update()
         {
-            if (!controlEnabled)
+            if (!controlEnabled || !localInputEnabled)
             {
                 UpdateWheelVisuals();
                 return;
@@ -165,9 +167,8 @@ namespace PBalap.Vehicle
 
             if (keyboard != null)
             {
-                // Match the movement used by the Michael scene: the kart moves
-                // forward automatically, while holding S switches to reverse.
-                throttle = keyboard.sKey.isPressed ? -1f : 1f;
+                throttle = keyboard.wKey.isPressed ? 1f
+                    : keyboard.sKey.isPressed ? -1f : 0f;
                 steering = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
                 brake = keyboard.spaceKey.isPressed;
@@ -191,6 +192,15 @@ namespace PBalap.Vehicle
         public float SteeringInput => steeringInput;
         public float ThrottleInput => throttleInput;
         public bool BrakeInput => brakeInput;
+
+        public void SetLocalInputEnabled(bool enabled)
+        {
+            localInputEnabled = enabled;
+            if (!enabled)
+            {
+                ResetInputState();
+            }
+        }
 
         public void SetInput(float steering, float throttle, bool brake)
         {
@@ -217,6 +227,52 @@ namespace PBalap.Vehicle
             }
 
             driftBoostTimer = Mathf.Max(0f, driftBoostTimer - Time.deltaTime);
+        }
+
+        public void ReplayMovementStep(float deltaTime)
+        {
+            if (vehicleRigidbody == null || !simulationEnabled)
+            {
+                return;
+            }
+
+            Vector3 localVelocity = transform.InverseTransformDirection(vehicleRigidbody.linearVelocity);
+            bool isBraking = brakeInput && !isDrifting;
+            bool isTurning = Mathf.Abs(steeringInput) > 0.01f;
+            float targetSpeed = isBraking ? 0f : throttleInput * maxSpeed;
+            float speedDifference = targetSpeed - localVelocity.z;
+            if ((isDrifting || isTurning && !brakeInput) && Mathf.Abs(localVelocity.z) > 0.01f)
+            {
+                speedDifference -= Mathf.Sign(localVelocity.z) / Mathf.Max(brakeStrength, 0.01f);
+            }
+
+            float currentAcceleration = acceleration
+                * (driftBoostTimer > 0f ? driftBoostMultiplier : 1f);
+            float forceLimit = isBraking ? brakeStrength : currentAcceleration;
+            float speedChange = Mathf.Clamp(
+                speedDifference,
+                -forceLimit * deltaTime,
+                forceLimit * deltaTime);
+            Vector3 flatForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            Vector3 sidewaysVelocity = transform.right * localVelocity.x;
+            Vector3 velocity = vehicleRigidbody.linearVelocity
+                + flatForward * (speedChange)
+                - sidewaysVelocity * (isDrifting ? driftFriction : friction) * deltaTime;
+            Vector3 planarVelocity = Vector3.ProjectOnPlane(velocity, Vector3.up);
+            if (planarVelocity.magnitude > maxSpeed)
+            {
+                velocity = planarVelocity.normalized * maxSpeed + Vector3.up * velocity.y;
+            }
+
+            vehicleRigidbody.linearVelocity = velocity;
+            vehicleRigidbody.position += velocity * deltaTime;
+            float forwardSpeed = Vector3.Dot(velocity, transform.forward);
+            float speedFactor = Mathf.Clamp01(Mathf.Abs(forwardSpeed) / maxSpeed);
+            float reverseFactor = forwardSpeed < 0f ? -1f : 1f;
+            float steeringMultiplier = isDrifting ? driftSteeringMultiplier : 1f;
+            float turnAmount = steeringInput * steering * steeringMultiplier
+                * speedFactor * reverseFactor * deltaTime;
+            vehicleRigidbody.rotation *= Quaternion.Euler(0f, turnAmount, 0f);
         }
 
         private void ApplyArcadeMovement()
@@ -311,23 +367,21 @@ namespace PBalap.Vehicle
                 ? cameraRig
                 : vehicleCamera.transform;
 
-            Quaternion cameraYawRotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+            // Smooth-kan sudut putar horizontal (kiri/kanan) secara independen
+            float rotationSmoothing = 1f - Mathf.Exp(-Mathf.Max(cameraRotationSmoothSpeed, 0f) * Time.deltaTime);
+            currentCameraYaw = Mathf.LerpAngle(currentCameraYaw, transform.eulerAngles.y, rotationSmoothing);
+
+            Quaternion cameraYawRotation = Quaternion.Euler(0f, currentCameraYaw, 0f);
+
+            // Posisi kamera menempel langsung pada posisi kart (maju/mundur instant tanpa delay)
             Vector3 desiredPosition = transform.position + cameraYawRotation * cameraOffset;
-            // Rigidbody interpolation already provides a render-time pose. Follow
-            // that pose directly so the local camera does not add another delay
-            // or consume stepped FixedUpdate velocity as a prediction offset.
             followTransform.position = desiredPosition;
 
-            Vector3 lookDirection = transform.position + Vector3.up * cameraLookHeight - followTransform.position;
+            // Kamera selalu menghadap ke kart secara presisi tanpa lag rotasi
+            Vector3 lookDirection = (transform.position + Vector3.up * cameraLookHeight) - followTransform.position;
             if (lookDirection.sqrMagnitude > 0.001f)
             {
-                Quaternion desiredRotation = Quaternion.LookRotation(lookDirection, Vector3.up);
-                float rotationSmoothing = 1f - Mathf.Exp(
-                    -Mathf.Max(cameraRotationSmoothSpeed, 0f) * Time.deltaTime);
-                followTransform.rotation = Quaternion.Slerp(
-                    followTransform.rotation,
-                    desiredRotation,
-                    rotationSmoothing);
+                followTransform.rotation = Quaternion.LookRotation(lookDirection, Vector3.up);
             }
         }
 

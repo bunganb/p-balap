@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Unity.Netcode;
@@ -30,7 +31,7 @@ namespace PBalap.Network
     [RequireComponent(typeof(NetworkManager), typeof(UnityTransport))]
     public sealed class NetworkSessionController : MonoBehaviour
     {
-        private const int MinimumPlayers = 2;
+        private const int MinimumPlayers = 1;
         private const int ClientConnectTimeoutMilliseconds = 15000;
         private const float KartSnapshotRefreshInterval = 0.25f;
         private static readonly Vector3[] SpawnPositions =
@@ -52,7 +53,7 @@ namespace PBalap.Network
         [Header("Scene References")]
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport unityTransport;
-        [SerializeField] private Countdown countdown;
+        [SerializeField] private RaceCountdown countdown;
 
         private bool operationInProgress;
         private bool joinedAsClient;
@@ -61,6 +62,7 @@ namespace PBalap.Network
         private bool applicationQuitting;
         private bool raceStarted;
         private bool raceStartInProgress;
+        private Coroutine raceCountdownRoutine;
         private string joinCode = string.Empty;
         private string joinCodeInput = string.Empty;
         private string lastError = string.Empty;
@@ -92,8 +94,11 @@ namespace PBalap.Network
         public IReadOnlyList<ulong> ConnectedClientIds => connectedClientIds;
         public IReadOnlyList<string> ActivityMessages => activityMessages;
         public bool IsHost => networkManager != null && networkManager.IsHost;
+        public bool IsHostingSession => hostingSession;
         public bool IsConnected => networkManager != null && networkManager.IsListening;
         public bool IsRaceStarted => raceStarted;
+        public bool IsRaceStartInProgress => raceStartInProgress;
+        public int MinimumPlayersRequired => MinimumPlayers;
         public int ConnectedPlayerCount => networkManager != null && networkManager.IsListening
             ? networkManager.ConnectedClients.Count
             : 0;
@@ -114,7 +119,7 @@ namespace PBalap.Network
 
             if (countdown == null)
             {
-                countdown = FindAnyObjectByType<Countdown>();
+                countdown = FindAnyObjectByType<RaceCountdown>();
             }
 
             if (networkManager != null)
@@ -151,11 +156,27 @@ namespace PBalap.Network
             applicationQuitting = true;
         }
 
+        private void Update()
+        {
+            if (!hostingSession
+                || networkManager == null
+                || !networkManager.IsHost
+                || raceStarted
+                || raceStartInProgress
+                || (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter)))
+            {
+                return;
+            }
+
+            StartRace();
+        }
+
         private void OnDestroy()
         {
-            if (countdown != null)
+            if (raceCountdownRoutine != null)
             {
-                countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
+                StopCoroutine(raceCountdownRoutine);
+                raceCountdownRoutine = null;
             }
 
             if (networkManager != null && networkManager.ConnectionApprovalCallback == ApproveConnection)
@@ -425,26 +446,54 @@ namespace PBalap.Network
                 playerKarts.Add(kart);
             }
 
-            if (countdown == null || !countdown.IsSpawned)
+            NetworkKartPlayer countdownBroadcaster = networkManager.LocalClient.PlayerObject == null
+                ? null
+                : networkManager.LocalClient.PlayerObject.GetComponent<NetworkKartPlayer>();
+            if (countdownBroadcaster == null || !countdownBroadcaster.IsSpawned)
             {
-                SetNotice("Countdown network belum siap pada scene Network.");
-                return false;
-            }
-
-            countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
-            countdown.CountdownCompletedOnServer += HandleCountdownCompletedOnServer;
-            if (!countdown.StartCountdownOnServer())
-            {
-                countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
-                SetNotice("Countdown gagal dimulai atau sudah berjalan.");
+                SetNotice("Player Host belum siap untuk menyiarkan countdown.");
                 return false;
             }
 
             raceStartInProgress = true;
+            int countdownDuration = countdown == null ? 3 : countdown.TimeToStart;
+            raceCountdownRoutine = StartCoroutine(
+                StartRaceCountdownRoutine(countdownBroadcaster, countdownDuration));
             lastError = string.Empty;
             SetNotice($"Countdown dimulai untuk {playerKarts.Count} pemain.");
             Debug.Log($"[Network] Race countdown started with {playerKarts.Count} players.");
             return true;
+        }
+
+        private IEnumerator StartRaceCountdownRoutine(
+            NetworkKartPlayer countdownBroadcaster,
+            int countdownDuration)
+        {
+            for (int timer = Mathf.Max(1, countdownDuration); timer > 0; timer--)
+            {
+                if (countdownBroadcaster == null
+                    || !countdownBroadcaster.IsSpawned
+                    || !countdownBroadcaster.SetCountdownOnServer(timer))
+                {
+                    raceStartInProgress = false;
+                    raceCountdownRoutine = null;
+                    SetNotice("Countdown dibatalkan karena player Host tidak lagi tersedia.");
+                    yield break;
+                }
+
+                yield return new WaitForSeconds(1f);
+            }
+
+            countdownBroadcaster.SetCountdownOnServer(0);
+            HandleCountdownCompletedOnServer();
+
+            yield return new WaitForSeconds(1f);
+            if (countdownBroadcaster != null && countdownBroadcaster.IsSpawned)
+            {
+                countdownBroadcaster.SetCountdownOnServer(-1);
+            }
+
+            raceCountdownRoutine = null;
         }
 
         private void HandleCountdownCompletedOnServer()
@@ -454,7 +503,6 @@ namespace PBalap.Network
                 return;
             }
 
-            countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
             raceStartInProgress = false;
             raceStarted = true;
 
@@ -496,6 +544,12 @@ namespace PBalap.Network
             SetState(NetworkSessionState.Disconnecting);
             clientConnectionCompletion?.TrySetResult(false);
 
+            if (raceCountdownRoutine != null)
+            {
+                StopCoroutine(raceCountdownRoutine);
+                raceCountdownRoutine = null;
+            }
+
             try
             {
                 networkManager.Shutdown();
@@ -508,10 +562,6 @@ namespace PBalap.Network
                 hostingSession = false;
                 raceStarted = false;
                 raceStartInProgress = false;
-                if (countdown != null)
-                {
-                    countdown.CountdownCompletedOnServer -= HandleCountdownCompletedOnServer;
-                }
                 lastError = string.Empty;
                 SetJoinCode(string.Empty);
                 SetState(NetworkSessionState.Disconnected);

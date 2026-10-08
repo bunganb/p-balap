@@ -351,11 +351,11 @@ MonoBehaviour:
     RpcHashSize: 0
     LoadSceneTimeOut: 120
     SpawnTimeout: 10
-    EnableNetworkLogs: 1
+    EnableNetworkLogs: 0
     NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
-    NetworkProfilingMetrics: 1
+    NetworkProfilingMetrics: 0
     OldPrefabList: []
   RunInBackground: 1
   LogLevel: 1

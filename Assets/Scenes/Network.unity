@@ -192,96 +192,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
---- !u!1001 &2100000001
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_InScenePlaced
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 3812469081
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 1687963438
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -2.75
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.61
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 18.21
-      objectReference: {fileID: 0}
-    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_Name
-      value: Bom Hover - Middle Lane
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
---- !u!1001 &2100000002
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_InScenePlaced
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 2468135790
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 1687963439
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.61
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 18.21
-      objectReference: {fileID: 0}
-    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_Name
-      value: Bom Hover - Left Lane
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
 --- !u!1 &158696330
 GameObject:
   m_ObjectHideFlags: 0
@@ -506,13 +416,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 428480171}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7784e9b3a78e204bb843a62be653acd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RaceCountdown
-  ShowTopMostFoldoutHeaderGroup: 1
-  countdownText: {fileID: 0}
+  countdownText: {fileID: 428480174}
   countdownDuration: 3
 --- !u!114 &428480174
 MonoBehaviour:
@@ -934,7 +843,6 @@ GameObject:
   m_Component:
   - component: {fileID: 604912950}
   - component: {fileID: 604912951}
-  - component: {fileID: 604912952}
   - component: {fileID: 604912953}
   m_Layer: 0
   m_Name: gameManager
@@ -985,21 +893,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &604912952
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 604912949}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a91f6705ea938d45bb31a95f743d697, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Countdown
-  ShowTopMostFoldoutHeaderGroup: 1
-  countdownText: {fileID: 428480174}
-  timeToStart: 3
 --- !u!114 &604912953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1050,6 +943,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FinishLine
   directionReference: {fileID: 0}
   crossingEpsilon: 0.05
+  minimumForwardVelocityZ: 0.01
+  enableDebugLogs: 0
 --- !u!65 &827941372
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1586,11 +1481,11 @@ MonoBehaviour:
     RpcHashSize: 0
     LoadSceneTimeOut: 120
     SpawnTimeout: 10
-    EnableNetworkLogs: 1
+    EnableNetworkLogs: 0
     NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
-    NetworkProfilingMetrics: 1
+    NetworkProfilingMetrics: 0
     OldPrefabList: []
   RunInBackground: 1
   LogLevel: 1
@@ -1646,7 +1541,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 145}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 1000, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1821117442
 MonoBehaviour:
@@ -1660,7 +1555,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7784e9b3a78e204bb843a62be653acd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RaceCountdown
-  ShowTopMostFoldoutHeaderGroup: 1
   countdownText: {fileID: 0}
   countdownDuration: 3
 --- !u!114 &1821117443
@@ -1890,11 +1784,11 @@ MonoBehaviour:
     RpcHashSize: 0
     LoadSceneTimeOut: 120
     SpawnTimeout: 10
-    EnableNetworkLogs: 1
+    EnableNetworkLogs: 0
     NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
-    NetworkProfilingMetrics: 1
+    NetworkProfilingMetrics: 0
     OldPrefabList: []
   RunInBackground: 1
   LogLevel: 1
@@ -1930,6 +1824,97 @@ MonoBehaviour:
   targetFrameRate: 60
   networkManager: {fileID: 2000000003}
   unityTransport: {fileID: 2000000002}
+  countdown: {fileID: 428480173}
+--- !u!1001 &2100000001
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_InScenePlaced
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2088085645
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1687963437
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.61
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 18.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_Name
+      value: Bom Hover - Middle Lane
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+--- !u!1001 &2100000002
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_InScenePlaced
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 3025493638
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1687963437
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.61
+      objectReference: {fileID: 0}
+    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 18.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_Name
+      value: Bom Hover - Left Lane
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1945,3 +1930,5 @@ SceneRoots:
   - {fileID: 570570887}
   - {fileID: 83364062}
   - {fileID: 442820011}
+  - {fileID: 2100000002}
+  - {fileID: 2100000001}

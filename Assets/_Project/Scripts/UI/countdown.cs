@@ -1,11 +1,9 @@
-using System;
-using System.Collections;
 using TMPro;
-using Unity.Netcode;
 using UnityEngine;
+using PBalap.Network;
 
-/// <summary>Displays a server-driven countdown on every connected player.</summary>
-public sealed class Countdown : NetworkBehaviour
+/// <summary>Displays countdown values replicated by the Host player object.</summary>
+public sealed class Countdown : MonoBehaviour
 {
     [Header("UI Reference")]
     [SerializeField] private TextMeshProUGUI countdownText;
@@ -13,62 +11,17 @@ public sealed class Countdown : NetworkBehaviour
     [Header("Settings")]
     [SerializeField, Min(1)] private int timeToStart = 3;
 
-    private readonly NetworkVariable<int> countdownValue = new NetworkVariable<int>(
-        -1,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server);
+    public int TimeToStart => timeToStart;
 
-    private Coroutine countdownRoutine;
-
-    public event Action CountdownCompletedOnServer;
-    public bool IsCountingDown => countdownRoutine != null;
-
-    public override void OnNetworkSpawn()
+    private void OnEnable()
     {
-        countdownValue.OnValueChanged += HandleCountdownChanged;
-        RenderCountdown(countdownValue.Value);
+        NetworkKartPlayer.CountdownChanged += RenderCountdown;
+        RenderCountdown(-1);
     }
 
-    public override void OnNetworkDespawn()
+    private void OnDisable()
     {
-        countdownValue.OnValueChanged -= HandleCountdownChanged;
-        if (countdownRoutine != null)
-        {
-            StopCoroutine(countdownRoutine);
-            countdownRoutine = null;
-        }
-    }
-
-    public bool StartCountdownOnServer()
-    {
-        if (!IsServer || !IsSpawned || countdownRoutine != null)
-        {
-            return false;
-        }
-
-        countdownRoutine = StartCoroutine(CountdownRoutine());
-        return true;
-    }
-
-    private IEnumerator CountdownRoutine()
-    {
-        for (int timer = timeToStart; timer > 0; timer--)
-        {
-            countdownValue.Value = timer;
-            yield return new WaitForSeconds(1f);
-        }
-
-        countdownValue.Value = 0;
-        CountdownCompletedOnServer?.Invoke();
-
-        yield return new WaitForSeconds(1f);
-        countdownValue.Value = -1;
-        countdownRoutine = null;
-    }
-
-    private void HandleCountdownChanged(int previousValue, int currentValue)
-    {
-        RenderCountdown(currentValue);
+        NetworkKartPlayer.CountdownChanged -= RenderCountdown;
     }
 
     private void RenderCountdown(int value)

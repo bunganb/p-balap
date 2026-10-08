@@ -148,6 +148,7 @@ GameObject:
   - component: {fileID: 6141338612066588340}
   - component: {fileID: 9100000000000000001}
   - component: {fileID: 9100000000000000002}
+  - component: {fileID: 9100000000000000004}
   - component: {fileID: 9100000000000000003}
   - component: {fileID: 4847724968220651919}
   - component: {fileID: 2125150445533926207}
@@ -190,9 +191,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
+  m_Name: ''
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1573595933
+  GlobalObjectIdHash: 3067538661
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -237,14 +238,14 @@ MonoBehaviour:
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
-  SyncRotAngleX: 1
+  SyncRotAngleX: 0
   SyncRotAngleY: 1
-  SyncRotAngleZ: 1
+  SyncRotAngleZ: 0
   SyncScaleX: 0
   SyncScaleY: 0
   SyncScaleZ: 0
-  PositionThreshold: 0.02
-  RotAngleThreshold: 0.25
+  PositionThreshold: 0.05
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
   UseQuaternionSynchronization: 0
   UseQuaternionCompression: 0
@@ -253,6 +254,22 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &9100000000000000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8221354507439611581}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6c0be61502bb534f922ebb746851216, type: 3}
+  m_Name: ''
+  m_EditorClassIdentifier: Unity.Netcode.Components::Unity.Netcode.Components.NetworkRigidbody
+  NetworkRigidbodyBaseExpanded: 0
+  UseRigidBodyForMotion: 1
+  AutoUpdateKinematicState: 0
+  AutoSetKinematicOnDespawn: 1
 --- !u!114 &9100000000000000003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -370,7 +387,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 4
   m_CollisionDetection: 0
 --- !u!114 &5004514833349580930
