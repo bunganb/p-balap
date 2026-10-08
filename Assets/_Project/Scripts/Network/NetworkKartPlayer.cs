@@ -31,6 +31,9 @@ namespace PBalap.Network
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
+        private uint nextInputSequence;
+        private uint lastProcessedInputSequence;
+
         public bool CanDrive => canDrive.Value;
         public int BombCount => bombCount.Value;
 
@@ -57,6 +60,41 @@ namespace PBalap.Network
             Debug.Log(
                 $"[NetworkKart] Spawned object {NetworkObjectId}, owner {OwnerClientId}, "
                 + $"localOwner={IsOwner}, position={transform.position}.");
+        }
+
+        private void FixedUpdate()
+        {
+            if (!IsOwner || !CanDrive || IsServer)
+            {
+                return;
+            }
+
+            SubmitInputServerRpc(
+                arcadeController.SteeringInput,
+                arcadeController.ThrottleInput,
+                arcadeController.BrakeInput,
+                ++nextInputSequence);
+        }
+
+        [ServerRpc(RequireOwnership = true)]
+        private void SubmitInputServerRpc(
+            float steering,
+            float throttle,
+            bool brake,
+            uint inputSequence)
+        {
+            if (!CanDrive
+                || inputSequence <= lastProcessedInputSequence
+                || float.IsNaN(steering)
+                || float.IsInfinity(steering)
+                || float.IsNaN(throttle)
+                || float.IsInfinity(throttle))
+            {
+                return;
+            }
+
+            lastProcessedInputSequence = inputSequence;
+            arcadeController.SetInput(steering, throttle, brake);
         }
 
         public override void OnNetworkDespawn()
@@ -112,12 +150,14 @@ namespace PBalap.Network
         private void ApplyControlState(bool raceAllowsDriving)
         {
             bool localOwner = IsSpawned && IsOwner;
-            bool localCanDrive = localOwner && raceAllowsDriving;
+            bool canSimulate = IsServer && raceAllowsDriving
+                || localOwner && raceAllowsDriving;
 
             if (arcadeController != null)
             {
-                arcadeController.SetControlEnabled(localCanDrive);
-                arcadeController.SetSimulationEnabled(localCanDrive);
+                arcadeController.SetControlEnabled(localOwner && raceAllowsDriving);
+                arcadeController.SetLocalInputEnabled(localOwner && raceAllowsDriving);
+                arcadeController.SetSimulationEnabled(canSimulate);
                 arcadeController.SetCameraEnabled(localOwner);
             }
 
@@ -126,19 +166,19 @@ namespace PBalap.Network
                 return;
             }
 
-            if (!localCanDrive && !vehicleRigidbody.isKinematic)
+            if (!canSimulate && !vehicleRigidbody.isKinematic)
             {
                 vehicleRigidbody.linearVelocity = Vector3.zero;
                 vehicleRigidbody.angularVelocity = Vector3.zero;
             }
 
-            // The owner simulates immediately. Non-owner instances are kinematic
-            // presentation proxies driven by the owner-authoritative NetworkTransform.
-            vehicleRigidbody.interpolation = localCanDrive
+            // The server and local owner simulate. Remote instances are kinematic
+            // presentation proxies driven by the server-authoritative NetworkTransform.
+            vehicleRigidbody.interpolation = canSimulate
                 ? RigidbodyInterpolation.Interpolate
                 : RigidbodyInterpolation.None;
-            vehicleRigidbody.useGravity = localCanDrive;
-            vehicleRigidbody.isKinematic = !localCanDrive;
+            vehicleRigidbody.useGravity = canSimulate;
+            vehicleRigidbody.isKinematic = !canSimulate;
         }
     }
 }

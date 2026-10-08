@@ -54,6 +54,7 @@ namespace PBalap.Vehicle
         private float driftBoostTimer;
         private bool controlEnabled = true;
         private bool simulationEnabled = true;
+        private bool localInputEnabled = true;
 
         private float currentCameraYaw;
 
@@ -153,7 +154,7 @@ namespace PBalap.Vehicle
 
         private void Update()
         {
-            if (!controlEnabled)
+            if (!controlEnabled || !localInputEnabled)
             {
                 UpdateWheelVisuals();
                 return;
@@ -166,7 +167,8 @@ namespace PBalap.Vehicle
 
             if (keyboard != null)
             {
-                throttle = keyboard.sKey.isPressed ? -1f : 1f;
+                throttle = keyboard.wKey.isPressed ? 1f
+                    : keyboard.sKey.isPressed ? -1f : 0f;
                 steering = (keyboard.dKey.isPressed ? 1f : 0f)
                     - (keyboard.aKey.isPressed ? 1f : 0f);
                 brake = keyboard.spaceKey.isPressed;
@@ -190,6 +192,15 @@ namespace PBalap.Vehicle
         public float SteeringInput => steeringInput;
         public float ThrottleInput => throttleInput;
         public bool BrakeInput => brakeInput;
+
+        public void SetLocalInputEnabled(bool enabled)
+        {
+            localInputEnabled = enabled;
+            if (!enabled)
+            {
+                ResetInputState();
+            }
+        }
 
         public void SetInput(float steering, float throttle, bool brake)
         {
