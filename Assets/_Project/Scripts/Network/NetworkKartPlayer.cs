@@ -33,6 +33,11 @@ namespace PBalap.Network
 
         private uint nextInputSequence;
         private uint lastProcessedInputSequence;
+        private float inputSendAccumulator;
+        private bool hasSentInput;
+
+        private const float InputSendRate = 30f;
+        private const float InputSendInterval = 1f / InputSendRate;
 
         public bool CanDrive => canDrive.Value;
         public int BombCount => bombCount.Value;
@@ -69,6 +74,23 @@ namespace PBalap.Network
                 return;
             }
 
+            inputSendAccumulator += Time.fixedDeltaTime;
+            if (!hasSentInput)
+            {
+                inputSendAccumulator = InputSendInterval;
+            }
+
+            // Input is state, so a lost unreliable packet is recovered by the next heartbeat.
+            // Keep a strict cap at the NGO tick rate to avoid a reliable-message backlog.
+            if (inputSendAccumulator < InputSendInterval)
+            {
+                return;
+            }
+
+            inputSendAccumulator = Mathf.Min(inputSendAccumulator, InputSendInterval);
+            inputSendAccumulator -= InputSendInterval;
+            hasSentInput = true;
+
             SubmitInputServerRpc(
                 arcadeController.SteeringInput,
                 arcadeController.ThrottleInput,
@@ -76,7 +98,7 @@ namespace PBalap.Network
                 ++nextInputSequence);
         }
 
-        [ServerRpc(RequireOwnership = true)]
+        [ServerRpc(RequireOwnership = true, Delivery = RpcDelivery.Unreliable)]
         private void SubmitInputServerRpc(
             float steering,
             float throttle,
@@ -176,7 +198,7 @@ namespace PBalap.Network
             // presentation proxies driven by the server-authoritative NetworkTransform.
             vehicleRigidbody.interpolation = canSimulate
                 ? RigidbodyInterpolation.Interpolate
-                : RigidbodyInterpolation.None;
+                : RigidbodyInterpolation.Interpolate;
             vehicleRigidbody.useGravity = canSimulate;
             vehicleRigidbody.isKinematic = !canSimulate;
         }

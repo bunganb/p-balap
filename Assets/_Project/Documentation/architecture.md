@@ -4,7 +4,9 @@
 2. Lobby/Relay handles room discovery and internet connectivity.
 3. The server/Host is authoritative for race state, checkpoints, laps, finish time, collision result, pickups, and item effects.
 4. Each vehicle owner sends sequenced input (`W/S/A/D`, `Space`) to the server through
-   `NetworkKartPlayer`; stale input packets are ignored.
+   `NetworkKartPlayer`. Input changes are sent immediately, steady-state input is capped
+   at the 30 Hz network tick, and the unreliable heartbeat is sequence-validated so stale
+   input packets are ignored without building a reliable-message backlog.
 5. The local owner predicts movement immediately with the same arcade controller. The
    server applies the accepted input to its authoritative Rigidbody, and
    `OwnerNetworkTransform` replicates authoritative snapshots back to clients.

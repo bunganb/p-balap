@@ -90,6 +90,15 @@ Player baru belum terlihat sebagai kendaraan sampai Player Prefab didaftarkan.
 
 ## Menambah data network
 
+### Mengurangi antrean paket input
+
+Input kart dikirim sebagai state, bukan event yang harus diterima satu per satu. Karena
+itu `NetworkKartPlayer` mengirim state pertama segera, lalu mengirim heartbeat
+unreliable maksimal 30 kali per detik (sesuai `NetworkConfig.TickRate`). Paket yang
+terlambat atau datang berurutan salah tetap ditolak melalui sequence number. Pendekatan
+ini mengurangi paket dari frekuensi physics (biasanya 50 Hz) tanpa mengurangi kontrol,
+drift, rem, atau validasi server.
+
 | Kebutuhan | Gunakan |
 | --- | --- |
 | Hanya untuk perangkat lokal | field C# biasa |
