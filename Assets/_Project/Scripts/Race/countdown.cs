@@ -27,26 +27,13 @@ public class RaceCountdown : NetworkBehaviour
             countdownText.gameObject.SetActive(false);
         }
 
-        // Jalankan countdown otomatis jika ini Server/Host
-        if (IsServer)
-        {
-            StartCoroutine(StartCountdownRoutine());
-        }
+        // Countdown hanya boleh dimulai oleh alur start race milik Host.
     }
 
     public override void OnNetworkDespawn()
     {
         currentCountdown.OnValueChanged -= OnCountdownValueChanged;
         isRaceStarted.OnValueChanged -= OnRaceStartedValueChanged;
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void StartCountdownServerRpc()
-    {
-        if (IsServer)
-        {
-            StartCoroutine(StartCountdownRoutine());
-        }
     }
 
     private IEnumerator StartCountdownRoutine()
