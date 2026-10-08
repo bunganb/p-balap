@@ -17,8 +17,10 @@ public sealed class RaceCountdown : MonoBehaviour
     {
         if (countdownText == null)
         {
-            countdownText = GetComponent<TMP_Text>();
+            countdownText.gameObject.SetActive(false);
         }
+
+        // Countdown hanya boleh dimulai oleh alur start race milik Host.
     }
 
     private void OnEnable()
@@ -27,12 +29,7 @@ public sealed class RaceCountdown : MonoBehaviour
         RenderCountdown(-1);
     }
 
-    private void OnDisable()
-    {
-        NetworkKartPlayer.CountdownChanged -= RenderCountdown;
-    }
-
-    private void RenderCountdown(int value)
+    private IEnumerator StartCountdownRoutine()
     {
         if (countdownText == null)
         {
