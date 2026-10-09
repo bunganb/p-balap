@@ -371,8 +371,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 389471331}
-  - component: {fileID: 389471330}
   - component: {fileID: 389471332}
+  - component: {fileID: 389471330}
   m_Layer: 0
   m_Name: spawnPoint Bom - (3)
   m_TagString: Untagged
@@ -395,6 +395,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   itemPrefab: {fileID: 428139116708751369, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
   itemSpawnTransform: {fileID: 0}
+  itemCount: 1
+  itemSpacing: 2
 --- !u!4 &389471331
 Transform:
   m_ObjectHideFlags: 0
@@ -1200,6 +1202,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   itemPrefab: {fileID: 428139116708751369, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
   itemSpawnTransform: {fileID: 1224263005}
+  itemCount: 1
+  itemSpacing: 2
 --- !u!4 &1224263005
 Transform:
   m_ObjectHideFlags: 0
@@ -1302,6 +1306,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   itemPrefab: {fileID: 428139116708751369, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
   itemSpawnTransform: {fileID: 1282953743}
+  itemCount: 1
+  itemSpacing: 2
 --- !u!4 &1282953743
 Transform:
   m_ObjectHideFlags: 0
@@ -1648,6 +1654,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   itemPrefab: {fileID: 428139116708751369, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
   itemSpawnTransform: {fileID: 1703162743}
+  itemCount: 1
+  itemSpacing: 2
 --- !u!4 &1703162743
 Transform:
   m_ObjectHideFlags: 0
@@ -1903,6 +1911,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   itemPrefab: {fileID: 428139116708751369, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
   itemSpawnTransform: {fileID: 1282953743}
+  itemCount: 1
+  itemSpacing: 2
 --- !u!4 &1837915658
 Transform:
   m_ObjectHideFlags: 0
