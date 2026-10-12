@@ -18,7 +18,8 @@ namespace PBalap.Network
 
         [SerializeField] private ArcadeVehicleController arcadeController;
         [SerializeField] private Rigidbody vehicleRigidbody;
-        [SerializeField, Min(0f)] private float itemTargetingDistance;
+        [SerializeField, Min(0.1f)] private float itemTargetingDistance = 12f;
+        [SerializeField, Range(1f, 90f)] private float itemTargetingHalfAngle = 50f;
         [SerializeField, Min(0.1f)] private float itemStunDuration = 1.5f;
 
         private readonly NetworkVariable<bool> canDrive = new NetworkVariable<bool>(
@@ -209,9 +210,11 @@ namespace PBalap.Network
             }
 
             NetworkKartPlayer nearestTarget = null;
-            float nearestDistanceSqr = itemTargetingDistance > 0f
-                ? itemTargetingDistance * itemTargetingDistance
-                : float.PositiveInfinity;
+            float nearestDistanceSqr = itemTargetingDistance * itemTargetingDistance;
+            float minimumForwardDot = Mathf.Cos(itemTargetingHalfAngle * Mathf.Deg2Rad);
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            forward.Normalize();
 
             NetworkKartPlayer[] players = FindObjectsByType<NetworkKartPlayer>(
                 FindObjectsInactive.Exclude);
@@ -226,10 +229,11 @@ namespace PBalap.Network
                 }
 
                 Vector3 offset = player.transform.position - transform.position;
+                offset.y = 0f;
                 float distanceSqr = offset.sqrMagnitude;
                 if (distanceSqr <= 0.001f
                     || distanceSqr >= nearestDistanceSqr
-                    || Vector3.Dot(transform.forward, offset.normalized) <= 0f)
+                    || Vector3.Dot(forward, offset.normalized) < minimumForwardDot)
                 {
                     continue;
                 }

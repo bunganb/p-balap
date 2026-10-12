@@ -149,6 +149,16 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   respawnDelay: 8
   pickupValidationDistance: 4
+  throwSpeed: 12
+  throwDuration: 4
+  throwArcHeight: 2.5
+  hitRadius: 1.25
+  homingSpeed: 14
+  maximumChaseDistance: 16
+  homingDelay: 0.25
+  gravity: 15
+  explosionEffectPrefab: {fileID: 100100000, guid: 0c980fa47d22a4c4cab0abe370784dea, type: 3}
+  explosionEffectLifetime: 3
   pickupCollider: {fileID: 4524575342976108793}
 --- !u!114 &428139116708751370
 MonoBehaviour:

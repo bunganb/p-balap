@@ -285,6 +285,9 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   arcadeController: {fileID: 5004514833349580930}
   vehicleRigidbody: {fileID: 3644149740565936743}
+  itemTargetingDistance: 12
+  itemTargetingHalfAngle: 50
+  itemStunDuration: 1.5
 --- !u!33 &4847724968220651919
 MeshFilter:
   m_ObjectHideFlags: 0

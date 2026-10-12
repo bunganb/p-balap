@@ -119,71 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &83364062
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_InScenePlaced
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 3044586023
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.61
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 18.21
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_Name
-      value: Bom Hover - Right Lane
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
 --- !u!1 &158696330
 GameObject:
   m_ObjectHideFlags: 0
@@ -619,79 +554,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!1001 &442820011
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 756864482823027043, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_InScenePlaced
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 756864482823027043, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 1995675414
-      objectReference: {fileID: 0}
-    - target: {fileID: 756864482823027043, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 756864482823027043, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 1326560806
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -2.08
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 17.85
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176426376568804640, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7555942213559046042, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
-      propertyPath: m_Name
-      value: Minyak Sawit (Icon)
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 13d337c264d0a004da6dcb312f077ee0, type: 3}
 --- !u!1 &553073885
 GameObject:
   m_ObjectHideFlags: 0
@@ -1813,6 +1675,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
+      propertyPath: m_InScenePlacedDisabledByDefault
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
       propertyPath: InScenePlacedSourceGlobalObjectIdHash
       value: 1687963437
       objectReference: {fileID: 0}
@@ -1845,55 +1711,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
---- !u!1001 &2100000002
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_InScenePlaced
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: GlobalObjectIdHash
-      value: 3025493638
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8265377662112098681, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 1687963437
-      objectReference: {fileID: 0}
-    - target: {fileID: 428139116708751369, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: respawnDelay
-      value: 8
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -5
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.61
-      objectReference: {fileID: 0}
-    - target: {fileID: 8133324386641878314, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 18.21
-      objectReference: {fileID: 0}
-    - target: {fileID: 8904900432619358096, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
-      propertyPath: m_Name
-      value: Bom Hover - Left Lane
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: ddd74082486650e44884688cbdffa3a4, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1906,8 +1723,5 @@ SceneRoots:
   - {fileID: 604912950}
   - {fileID: 827941375}
   - {fileID: 570570887}
-  - {fileID: 83364062}
-  - {fileID: 442820011}
-  - {fileID: 2100000002}
   - {fileID: 2100000001}
   - {fileID: 389471331}

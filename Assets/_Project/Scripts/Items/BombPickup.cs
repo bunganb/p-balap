@@ -13,13 +13,23 @@ namespace PBalap.Items
         [SerializeField, Min(0.1f)] private float respawnDelay = 8f;
         [SerializeField, Min(0.5f)] private float pickupValidationDistance = 4f;
         [SerializeField, Min(0.1f)] private float throwSpeed = 12f;
-        [SerializeField, Min(0.1f)] private float throwDuration = 1.5f;
+        [SerializeField, Min(0.1f)] private float throwDuration = 4f;
         [SerializeField, Min(0f)] private float throwArcHeight = 2.5f;
         [SerializeField, Min(0.1f)] private float hitRadius = 1.25f;
+        [SerializeField, Min(0.1f)] private float homingSpeed = 14f;
+        [SerializeField, Min(0.1f)] private float maximumChaseDistance = 16f;
+        [SerializeField, Min(0f)] private float homingDelay = 0.25f;
+        [SerializeField, Min(0.1f)] private float gravity = 15f;
+        [SerializeField] private GameObject explosionEffectPrefab;
+        [SerializeField, Min(0.1f)] private float explosionEffectLifetime = 3f;
         [SerializeField] private Collider pickupCollider;
 
         private readonly NetworkVariable<bool> isAvailable = new NetworkVariable<bool>(
             true,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<bool> isThrown = new NetworkVariable<bool>(
+            false,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
@@ -29,6 +39,7 @@ namespace PBalap.Items
         private bool isHeld;
         private Vector3 spawnPosition;
         private Quaternion spawnRotation;
+        private readonly Collider[] hitColliders = new Collider[16];
 
         public bool IsAvailable => isAvailable.Value;
 
@@ -55,12 +66,14 @@ namespace PBalap.Items
         public override void OnNetworkSpawn()
         {
             isAvailable.OnValueChanged += HandleAvailabilityChanged;
+            isThrown.OnValueChanged += HandleThrownChanged;
             ApplyAvailability(isAvailable.Value);
         }
 
         public override void OnNetworkDespawn()
         {
             isAvailable.OnValueChanged -= HandleAvailabilityChanged;
+            isThrown.OnValueChanged -= HandleThrownChanged;
             if (respawnRoutine != null)
             {
                 StopCoroutine(respawnRoutine);
@@ -175,42 +188,65 @@ namespace PBalap.Items
             NetworkKartPlayer target,
             NetworkKartPlayer thrower)
         {
-            Vector3 throwDirection = direction.sqrMagnitude > 0.001f
-                ? direction.normalized
-                : transform.forward;
-            float elapsed = 0f;
-            Vector3 startPosition = position;
-            Vector3 horizontalPosition = startPosition;
+            Vector3 throwDirection = Vector3.ProjectOnPlane(
+                direction.sqrMagnitude > 0.001f ? direction.normalized : transform.forward,
+                Vector3.up).normalized;
+            if (throwDirection.sqrMagnitude < 0.001f)
+            {
+                throwDirection = Vector3.forward;
+            }
 
-            transform.SetPositionAndRotation(startPosition, Quaternion.LookRotation(throwDirection));
+            float elapsed = 0f;
+            float verticalVelocity = Mathf.Sqrt(2f * gravity * throwArcHeight);
+
+            transform.SetPositionAndRotation(position, Quaternion.LookRotation(throwDirection));
             SetThrownState();
 
             while (elapsed < throwDuration)
             {
-                elapsed += Time.deltaTime;
-                float progress = Mathf.Clamp01(elapsed / throwDuration);
-                if (target != null && target.IsSpawned)
+                float deltaTime = Time.deltaTime;
+                elapsed += deltaTime;
+
+                if (target != null
+                    && (!target.IsSpawned
+                        || !target.CanDrive
+                        || target == thrower
+                        || IsBeyondChaseDistance(thrower, target)))
                 {
-                    Vector3 targetOffset = target.transform.position - transform.position;
-                    targetOffset.y = 0f;
-                    if (targetOffset.sqrMagnitude > 0.001f)
-                    {
-                        throwDirection = targetOffset.normalized;
-                    }
+                    target = null;
                 }
 
-                horizontalPosition += throwDirection * throwSpeed * Time.deltaTime;
-                transform.position = horizontalPosition
-                    + Vector3.up * (Mathf.Sin(progress * Mathf.PI) * throwArcHeight);
-                if (throwDirection.sqrMagnitude > 0.001f)
+                Vector3 previousPosition = transform.position;
+                if (target != null && elapsed >= homingDelay)
                 {
+                    Vector3 targetPosition = target.transform.position + Vector3.up * 0.55f;
+                    Vector3 toTarget = targetPosition - transform.position;
+                    transform.position = Vector3.MoveTowards(
+                        transform.position,
+                        targetPosition,
+                        homingSpeed * deltaTime);
+                    if (toTarget.sqrMagnitude > 0.001f)
+                    {
+                        transform.rotation = Quaternion.LookRotation(toTarget.normalized);
+                    }
+                }
+                else
+                {
+                    verticalVelocity -= gravity * deltaTime;
+                    transform.position += throwDirection * (throwSpeed * deltaTime)
+                        + Vector3.up * (verticalVelocity * deltaTime);
                     transform.rotation = Quaternion.LookRotation(throwDirection);
                 }
 
-                NetworkKartPlayer hitPlayer = FindHitPlayer(thrower);
-                if (hitPlayer != null)
+                if (target != null && FindHitTarget(target) && target.StunOnServer())
                 {
-                    hitPlayer.StunOnServer();
+                    PlayExplosionEffectRpc(transform.position);
+                    FinishThrownItem();
+                    yield break;
+                }
+
+                if (target == null && HasLanded(previousPosition, transform.position))
+                {
                     FinishThrownItem();
                     yield break;
                 }
@@ -219,6 +255,55 @@ namespace PBalap.Items
             }
 
             FinishThrownItem();
+        }
+
+        private bool IsBeyondChaseDistance(NetworkKartPlayer thrower, NetworkKartPlayer target)
+        {
+            if (thrower == null || !thrower.IsSpawned)
+            {
+                return true;
+            }
+
+            Vector3 offset = target.transform.position - thrower.transform.position;
+            offset.y = 0f;
+            return offset.sqrMagnitude > maximumChaseDistance * maximumChaseDistance;
+        }
+
+        private bool HasLanded(Vector3 previousPosition, Vector3 currentPosition)
+        {
+            Vector3 displacement = currentPosition - previousPosition;
+            if (displacement.y >= 0f || displacement.sqrMagnitude < 0.0001f)
+            {
+                return false;
+            }
+
+            if (Physics.Raycast(
+                    previousPosition,
+                    displacement.normalized,
+                    out RaycastHit hit,
+                    displacement.magnitude,
+                    Physics.DefaultRaycastLayers,
+                    QueryTriggerInteraction.Ignore))
+            {
+                return hit.normal.y > 0.35f;
+            }
+
+            return false;
+        }
+
+        [Rpc(SendTo.Everyone, Delivery = RpcDelivery.Reliable)]
+        private void PlayExplosionEffectRpc(Vector3 position)
+        {
+            if (explosionEffectPrefab == null)
+            {
+                return;
+            }
+
+            GameObject effect = Instantiate(
+                explosionEffectPrefab,
+                position,
+                Quaternion.identity);
+            effect.AddComponent<BombExplosionEffect>().Play(explosionEffectLifetime);
         }
 
         private void FinishThrownItem()
@@ -234,61 +319,47 @@ namespace PBalap.Items
             }
 
             transform.SetPositionAndRotation(spawnPosition, spawnRotation);
+            isThrown.Value = false;
             isAvailable.Value = true;
             ApplyAvailability(true);
             respawnRoutine = null;
         }
 
-        private NetworkKartPlayer FindHitPlayer(NetworkKartPlayer thrower)
+        private bool FindHitTarget(NetworkKartPlayer target)
         {
-            Collider[] hitColliders = Physics.OverlapSphere(transform.position, hitRadius);
-            foreach (Collider hitCollider in hitColliders)
+            int hitCount = Physics.OverlapSphereNonAlloc(
+                transform.position,
+                hitRadius,
+                hitColliders,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hitCount; i++)
             {
-                NetworkKartPlayer player = hitCollider.GetComponentInParent<NetworkKartPlayer>();
-                if (player != null
-                    && player != thrower
-                    && player.IsSpawned
-                    && player.CanDrive)
+                NetworkKartPlayer hitPlayer = hitColliders[i] != null
+                    ? hitColliders[i].GetComponentInParent<NetworkKartPlayer>()
+                    : null;
+                if (hitPlayer == target && hitPlayer.IsSpawned && hitPlayer.CanDrive)
                 {
-                    return player;
+                    return true;
                 }
             }
 
-            return null;
+            return false;
         }
 
         private void SetThrownState()
         {
-            if (pickupCollider != null)
+            if (IsServer)
             {
-                pickupCollider.enabled = false;
+                isThrown.Value = true;
             }
 
-            if (pickupRenderers == null)
-            {
-                return;
-            }
-
-            foreach (Renderer pickupRenderer in pickupRenderers)
-            {
-                if (pickupRenderer != null)
-                {
-                    pickupRenderer.enabled = true;
-                }
-            }
+            ApplyAvailability(isAvailable.Value);
         }
 
-        private IEnumerator RespawnAfterDelay()
+        private void HandleThrownChanged(bool previousValue, bool currentValue)
         {
-            yield return new WaitForSeconds(respawnDelay);
-
-            if (IsServer && IsSpawned)
-            {
-                isAvailable.Value = true;
-                ApplyAvailability(true);
-            }
-
-            respawnRoutine = null;
+            ApplyAvailability(isAvailable.Value);
         }
 
         private void HandleAvailabilityChanged(bool previousValue, bool currentValue)
@@ -312,9 +383,23 @@ namespace PBalap.Items
             {
                 if (pickupRenderer != null)
                 {
-                    pickupRenderer.enabled = available;
+                    pickupRenderer.enabled = available || isThrown.Value;
                 }
             }
         }
+
+        private IEnumerator RespawnAfterDelay()
+        {
+            yield return new WaitForSeconds(respawnDelay);
+
+            if (IsServer && IsSpawned)
+            {
+                isAvailable.Value = true;
+                ApplyAvailability(true);
+            }
+
+            respawnRoutine = null;
+        }
+
     }
 }

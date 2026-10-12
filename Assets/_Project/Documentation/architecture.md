@@ -2,15 +2,12 @@
 
 1. `NetworkManager`/Transport establishes Host or Client.
 2. Lobby/Relay handles room discovery and internet connectivity.
-3. The server/Host is authoritative for race state, checkpoints, laps, finish time, collision result, pickups, and item effects.
-4. Each vehicle owner sends sequenced input (`W/S/A/D`, `Space`) to the server through
-   `NetworkKartPlayer`. Input changes are sent after local input sampling in the same
-   rendered frame, steady-state input is capped at the 60 Hz network tick, and the
-   unreliable heartbeat is sequence-validated so stale input packets are ignored.
-5. The local owner predicts movement immediately with the same arcade controller. The
-   server applies the accepted input to its authoritative Rigidbody, and
-   `OwnerNetworkTransform` replicates authoritative snapshots back to clients.
-   Remote vehicles use NetworkTransform interpolation and the owner is corrected by
-   the       authoritative snapshot stream. Remote snapshot interpolation is bounded to 100 ms;
-   the local owner does not add that buffer on top of client-side prediction.
-6. Debug UI exposes ping, tick, packet loss, and correction distance.
+3. The server/Host is authoritative for race state, checkpoints, laps, finish time, pickups, and item effects. Each kart owner is authoritative for its movement.
+4. Each vehicle owner reads local input (`W/S/A/D`, `Space`) and simulates its own
+   Rigidbody. `OwnerNetworkTransform` sends the owner's position and rotation to the
+   Host and the other clients at the configured 30 Hz network tick rate.
+5. Non-owner vehicles are kinematic and use NetworkTransform interpolation to display
+   the received movement. There is no separate position reconciliation RPC or input
+   replay. The Host still owns race state, item effects, stun, and lap decisions.
+6. Position-dependent gameplay requests must be validated on the Host. The current
+   `NetworkDebugOverlay` is a placeholder and does not yet report network metrics.
