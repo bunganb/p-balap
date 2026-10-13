@@ -26,6 +26,7 @@ public class RaceManager : NetworkBehaviour
     private GameObject selectionPanel;
     private GameObject hostPanel;
     private GameObject clientPanel;
+    private GameObject clientWaitPanel;
     private TMP_InputField joinCodeInput;
     private TextMeshProUGUI[] hostPlayerStatuses = new TextMeshProUGUI[0];
     private TextMeshProUGUI hostJoinCodeText;
@@ -62,6 +63,7 @@ public class RaceManager : NetworkBehaviour
             selectionPanel = root.Find("#1 - select")?.gameObject;
             hostPanel = root.Find("#2 - Host")?.gameObject;
             clientPanel = root.Find("#3 - Client")?.gameObject;
+            clientWaitPanel = root.Find("#3 - Client/wait")?.gameObject;
             CacheHostStatusTexts();
             WirePreGameButtons(root);
         }
@@ -215,7 +217,10 @@ public class RaceManager : NetworkBehaviour
             return;
         }
 
-        bool inRace = session.IsRaceStartInProgress || session.IsRaceStarted || networkCountdownActive;
+        bool inRace = session.IsRaceStartInProgress
+            || session.IsRaceStarted
+            || networkCountdownActive
+            || IsRaceStartedOnNetwork();
         if (inRace)
         {
             SetGameplayUiActive(true);
@@ -232,7 +237,21 @@ public class RaceManager : NetworkBehaviour
         SetPreGamePanel(selectionPanel, isSelecting);
         SetPreGamePanel(hostPanel, isHost);
         SetPreGamePanel(clientPanel, showClientPanel);
+        UpdateClientPanel(session.State == NetworkSessionState.Joined);
         UpdateHostPanel(isHost);
+    }
+
+    private void UpdateClientPanel(bool joined)
+    {
+        if (joinCodeInput != null)
+        {
+            joinCodeInput.gameObject.SetActive(!joined);
+        }
+
+        if (clientWaitPanel != null)
+        {
+            clientWaitPanel.SetActive(joined);
+        }
     }
 
     private void CacheHostStatusTexts()
