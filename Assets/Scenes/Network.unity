@@ -1969,8 +1969,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RaceManager
   ShowTopMostFoldoutHeaderGroup: 1
   totalLaps: 3
+  preCountdownDelay: 2
   lapText: {fileID: 553073888}
   raceOverText: {fileID: 1821117444}
+  preGameCanvas: {fileID: 0}
+  inGameCanvas: {fileID: 0}
 --- !u!1 &638792342
 GameObject:
   m_ObjectHideFlags: 0
