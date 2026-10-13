@@ -5510,7 +5510,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxPlayers: 4
   relayConnectionType: dtls
-  showRuntimeUi: 1
+  showRuntimeUi: 0
   targetFrameRate: 144
   networkManager: {fileID: 2000000003}
   unityTransport: {fileID: 2000000002}

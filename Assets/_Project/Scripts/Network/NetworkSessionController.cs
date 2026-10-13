@@ -570,12 +570,12 @@ namespace PBalap.Network
             }
         }
 
-        private async void CreateRoomFromUi()
+        public async void CreateRoomFromUi()
         {
             await CreateRoomAsync();
         }
 
-        private async void JoinRoomFromUi()
+        public async void JoinRoomFromUi()
         {
             await JoinRoomAsync(joinCodeInput);
         }

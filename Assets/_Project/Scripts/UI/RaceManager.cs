@@ -1,7 +1,10 @@
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
+using UnityEngine.UI;
 using PBalap.Network;
+using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 
 public class RaceManager : NetworkBehaviour
@@ -10,31 +13,299 @@ public class RaceManager : NetworkBehaviour
 
     [Header("Pengaturan Lap")]
     public int totalLaps = 3;
+    [SerializeField, Min(0f)] private float preCountdownDelay = 1f;
 
     [Header("Referensi UI")]
     [SerializeField] private TextMeshProUGUI lapText;
     [SerializeField] private TextMeshProUGUI raceOverText;
+    [SerializeField] private GameObject preGameCanvas;
+    [SerializeField] private GameObject inGameCanvas;
     private bool showingPreRaceStatus;
     private bool networkCountdownActive;
+    private NetworkSessionController session;
+    private GameObject selectionPanel;
+    private GameObject hostPanel;
+    private GameObject clientPanel;
+    private TMP_InputField joinCodeInput;
+    private TextMeshProUGUI[] hostPlayerStatuses = new TextMeshProUGUI[0];
+    private TextMeshProUGUI hostJoinCodeText;
+    private bool clientPanelRequested;
+    private Coroutine startRaceRoutine;
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+
+        session = FindAnyObjectByType<NetworkSessionController>();
+        if (preGameCanvas == null)
+        {
+            preGameCanvas = GameObject.Find("UI");
+        }
+
+        if (inGameCanvas == null)
+        {
+            Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsInactive.Include);
+            foreach (Canvas canvas in canvases)
+            {
+                if (canvas.gameObject.name == "In-Game UI")
+                {
+                    inGameCanvas = canvas.gameObject;
+                    break;
+                }
+            }
+        }
+
+        if (preGameCanvas != null)
+        {
+            Transform root = preGameCanvas.transform;
+            selectionPanel = root.Find("#1 - select")?.gameObject;
+            hostPanel = root.Find("#2 - Host")?.gameObject;
+            clientPanel = root.Find("#3 - Client")?.gameObject;
+            CacheHostStatusTexts();
+            WirePreGameButtons(root);
+        }
     }
 
     private void OnEnable()
     {
         NetworkKartPlayer.CountdownChanged += HandleCountdownChanged;
+        if (session != null)
+        {
+            session.StateChanged += HandleSessionStateChanged;
+        }
     }
 
     private void OnDisable()
     {
         NetworkKartPlayer.CountdownChanged -= HandleCountdownChanged;
+        if (session != null)
+        {
+            session.StateChanged -= HandleSessionStateChanged;
+        }
+
+        if (startRaceRoutine != null)
+        {
+            StopCoroutine(startRaceRoutine);
+            startRaceRoutine = null;
+        }
+    }
+
+    private void Start()
+    {
+        SetGameplayUiActive(false);
+        SyncPreGameUi();
+    }
+
+    private void WirePreGameButtons(Transform root)
+    {
+        Button hostButton = root.Find("#1 - select/host")?.GetComponent<Button>();
+        Button joinButton = root.Find("#1 - select/join")?.GetComponent<Button>();
+        Button startButton = root.Find("#2 - Host/Start-btn")?.GetComponent<Button>();
+        Button copyButton = root.Find("#2 - Host/copy-btn")?.GetComponent<Button>();
+        joinCodeInput = root.Find("#3 - Client/inputCode")?.GetComponent<TMP_InputField>();
+
+        if (hostButton != null)
+        {
+            hostButton.onClick.AddListener(CreateRoom);
+        }
+
+        if (joinButton != null)
+        {
+            joinButton.onClick.AddListener(ShowClientPanel);
+        }
+
+        if (startButton != null)
+        {
+            startButton.onClick.AddListener(StartRaceFromUi);
+        }
+
+        if (copyButton != null)
+        {
+            copyButton.onClick.AddListener(CopyJoinCode);
+        }
+
+        if (joinCodeInput != null)
+        {
+            joinCodeInput.onValueChanged.AddListener(UpdateJoinCode);
+            joinCodeInput.onSubmit.AddListener(JoinRoom);
+        }
+    }
+
+    private void CreateRoom()
+    {
+        if (session == null)
+        {
+            Debug.LogError("[RaceManager] NetworkSessionController tidak ditemukan.", this);
+            return;
+        }
+
+        clientPanelRequested = false;
+        session.CreateRoomFromUi();
+    }
+
+    private void ShowClientPanel()
+    {
+        clientPanelRequested = true;
+        SetPreGamePanel(selectionPanel, false);
+        SetPreGamePanel(hostPanel, false);
+        SetPreGamePanel(clientPanel, true);
+    }
+
+    private void JoinRoom(string _)
+    {
+        if (session == null)
+        {
+            Debug.LogError("[RaceManager] NetworkSessionController tidak ditemukan.", this);
+            return;
+        }
+
+        session.JoinRoomFromUi();
+    }
+
+    private void StartRaceFromUi()
+    {
+        if (session == null || startRaceRoutine != null)
+        {
+            return;
+        }
+
+        startRaceRoutine = StartCoroutine(StartRaceAfterDelay());
+    }
+
+    private IEnumerator StartRaceAfterDelay()
+    {
+        if (preCountdownDelay > 0f)
+        {
+            yield return new WaitForSeconds(preCountdownDelay);
+        }
+
+        startRaceRoutine = null;
+        if (session != null)
+        {
+            session.StartRace();
+        }
+    }
+
+    private void CopyJoinCode()
+    {
+        if (session != null && !string.IsNullOrWhiteSpace(session.JoinCode))
+        {
+            GUIUtility.systemCopyBuffer = session.JoinCode;
+        }
+    }
+
+    private void UpdateJoinCode(string value)
+    {
+        if (session != null)
+        {
+            session.JoinCodeInput = value;
+        }
+    }
+
+    private void HandleSessionStateChanged(NetworkSessionState state)
+    {
+        SyncPreGameUi();
+    }
+
+    private void SyncPreGameUi()
+    {
+        if (session == null || preGameCanvas == null)
+        {
+            return;
+        }
+
+        bool inRace = session.IsRaceStartInProgress || session.IsRaceStarted || networkCountdownActive;
+        if (inRace)
+        {
+            SetGameplayUiActive(true);
+            return;
+        }
+
+        SetGameplayUiActive(false);
+        bool isHost = session.State == NetworkSessionState.Hosting;
+        bool isClient = session.State == NetworkSessionState.Joined
+            || session.State == NetworkSessionState.Connecting;
+        bool showClientPanel = isClient || clientPanelRequested;
+        bool isSelecting = !isHost && !showClientPanel;
+
+        SetPreGamePanel(selectionPanel, isSelecting);
+        SetPreGamePanel(hostPanel, isHost);
+        SetPreGamePanel(clientPanel, showClientPanel);
+        UpdateHostPanel(isHost);
+    }
+
+    private void CacheHostStatusTexts()
+    {
+        if (hostPanel == null)
+        {
+            return;
+        }
+
+        List<TextMeshProUGUI> statusTexts = new List<TextMeshProUGUI>();
+        TextMeshProUGUI[] texts = hostPanel.GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (TextMeshProUGUI text in texts)
+        {
+            if (text.gameObject.name == "playerStatus")
+            {
+                statusTexts.Add(text);
+            }
+            else if (text.gameObject.name == "codeTxt")
+            {
+                hostJoinCodeText = text;
+            }
+        }
+
+        hostPlayerStatuses = statusTexts.ToArray();
+    }
+
+    private void UpdateHostPanel(bool isHost)
+    {
+        if (hostJoinCodeText != null)
+        {
+            hostJoinCodeText.text = session != null && !string.IsNullOrWhiteSpace(session.JoinCode)
+                ? $"Code Room : {session.JoinCode}"
+                : "Code Room :";
+        }
+
+        int onlinePlayers = isHost && session != null
+            ? Mathf.Min(session.ConnectedPlayerCount, hostPlayerStatuses.Length)
+            : 0;
+
+        for (int index = 0; index < hostPlayerStatuses.Length; index++)
+        {
+            TextMeshProUGUI statusText = hostPlayerStatuses[index];
+            bool online = index < onlinePlayers;
+            statusText.text = online ? "Online" : "offline";
+            statusText.color = online ? Color.green : Color.red;
+        }
+    }
+
+    private void SetGameplayUiActive(bool active)
+    {
+        if (preGameCanvas != null)
+        {
+            preGameCanvas.SetActive(!active);
+        }
+
+        if (inGameCanvas != null)
+        {
+            inGameCanvas.SetActive(active);
+        }
+    }
+
+    private static void SetPreGamePanel(GameObject panel, bool active)
+    {
+        if (panel != null)
+        {
+            panel.SetActive(active);
+        }
     }
 
     private void Update()
     {
+        SyncPreGameUi();
+
         if (raceOverText == null)
         {
             return;
@@ -77,6 +348,7 @@ public class RaceManager : NetworkBehaviour
         networkCountdownActive = value >= 0;
         if (networkCountdownActive)
         {
+            SetGameplayUiActive(true);
             ClearPreRaceStatus();
         }
     }
