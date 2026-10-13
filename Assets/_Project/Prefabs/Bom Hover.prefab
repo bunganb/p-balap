@@ -157,8 +157,8 @@ MonoBehaviour:
   maximumChaseDistance: 16
   homingDelay: 0.25
   gravity: 15
-  explosionEffectPrefab: {fileID: 100100000, guid: 0c980fa47d22a4c4cab0abe370784dea, type: 3}
-  explosionEffectLifetime: 3
+  explosionEffect: {fileID: 3338714357049449069, guid: 0757d12093da82e4fabba8e55218c29c, type: 3}
+  impactCleanupDelay: 0.2
   pickupCollider: {fileID: 4524575342976108793}
 --- !u!114 &428139116708751370
 MonoBehaviour:

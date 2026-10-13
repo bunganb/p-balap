@@ -20,8 +20,8 @@ namespace PBalap.Items
         [SerializeField, Min(0.1f)] private float maximumChaseDistance = 16f;
         [SerializeField, Min(0f)] private float homingDelay = 0.25f;
         [SerializeField, Min(0.1f)] private float gravity = 15f;
-        [SerializeField] private GameObject explosionEffectPrefab;
-        [SerializeField, Min(0.1f)] private float explosionEffectLifetime = 3f;
+        [SerializeField] private ParticleSystem explosionEffect;
+        [SerializeField, Min(0f)] private float impactCleanupDelay = 0.2f;
         [SerializeField] private Collider pickupCollider;
 
         private readonly NetworkVariable<bool> isAvailable = new NetworkVariable<bool>(
@@ -59,6 +59,11 @@ namespace PBalap.Items
             }
 
             pickupRenderers = GetComponentsInChildren<Renderer>(true);
+            if (explosionEffect == null)
+            {
+                explosionEffect = transform.root.GetComponentInChildren<ParticleSystem>(true);
+            }
+
             spawnPosition = transform.position;
             spawnRotation = transform.rotation;
         }
@@ -241,12 +246,15 @@ namespace PBalap.Items
                 if (target != null && FindHitTarget(target) && target.StunOnServer())
                 {
                     PlayExplosionEffectRpc(transform.position);
+                    yield return new WaitForSeconds(impactCleanupDelay);
                     FinishThrownItem();
                     yield break;
                 }
 
-                if (target == null && HasLanded(previousPosition, transform.position))
+                if (TryGetLandingPoint(previousPosition, transform.position, out Vector3 landingPoint))
                 {
+                    PlayExplosionEffectRpc(landingPoint);
+                    yield return new WaitForSeconds(impactCleanupDelay);
                     FinishThrownItem();
                     yield break;
                 }
@@ -269,8 +277,12 @@ namespace PBalap.Items
             return offset.sqrMagnitude > maximumChaseDistance * maximumChaseDistance;
         }
 
-        private bool HasLanded(Vector3 previousPosition, Vector3 currentPosition)
+        private bool TryGetLandingPoint(
+            Vector3 previousPosition,
+            Vector3 currentPosition,
+            out Vector3 landingPoint)
         {
+            landingPoint = currentPosition;
             Vector3 displacement = currentPosition - previousPosition;
             if (displacement.y >= 0f || displacement.sqrMagnitude < 0.0001f)
             {
@@ -285,7 +297,13 @@ namespace PBalap.Items
                     Physics.DefaultRaycastLayers,
                     QueryTriggerInteraction.Ignore))
             {
-                return hit.normal.y > 0.35f;
+                if (hit.normal.y <= 0.35f)
+                {
+                    return false;
+                }
+
+                landingPoint = hit.point + hit.normal * 0.08f;
+                return true;
             }
 
             return false;
@@ -294,16 +312,26 @@ namespace PBalap.Items
         [Rpc(SendTo.Everyone, Delivery = RpcDelivery.Reliable)]
         private void PlayExplosionEffectRpc(Vector3 position)
         {
-            if (explosionEffectPrefab == null)
+            if (explosionEffect == null)
             {
                 return;
             }
 
-            GameObject effect = Instantiate(
-                explosionEffectPrefab,
-                position,
-                Quaternion.identity);
-            effect.AddComponent<BombExplosionEffect>().Play(explosionEffectLifetime);
+            GameObject effect = Instantiate(explosionEffect.gameObject, position, Quaternion.identity);
+            effect.name = "BombExplosionVFX";
+            effect.SetActive(true);
+
+            ParticleSystem particleSystem = effect.GetComponent<ParticleSystem>();
+            if (particleSystem == null)
+            {
+                Destroy(effect);
+                return;
+            }
+
+            particleSystem.Clear(true);
+            particleSystem.Play(true);
+            ParticleSystem.MainModule main = particleSystem.main;
+            main.stopAction = ParticleSystemStopAction.Destroy;
         }
 
         private void FinishThrownItem()
