@@ -22,12 +22,14 @@ public class RaceManager : NetworkBehaviour
     [SerializeField] private GameObject inGameCanvas;
     private bool showingPreRaceStatus;
     private bool networkCountdownActive;
+    private int latestCountdownValue = -1;
     private NetworkSessionController session;
     private GameObject selectionPanel;
     private GameObject hostPanel;
     private GameObject clientPanel;
     private GameObject clientWaitPanel;
     private TMP_InputField joinCodeInput;
+    private TMP_Text countdownText;
     private TextMeshProUGUI[] hostPlayerStatuses = new TextMeshProUGUI[0];
     private TextMeshProUGUI hostJoinCodeText;
     private bool clientPanelRequested;
@@ -55,6 +57,14 @@ public class RaceManager : NetworkBehaviour
                     break;
                 }
             }
+        }
+
+        if (inGameCanvas != null)
+        {
+            Transform countdownObject = inGameCanvas.transform.Find("count");
+            countdownText = countdownObject == null
+                ? null
+                : countdownObject.GetComponent<TMP_Text>();
         }
 
         if (preGameCanvas != null)
@@ -225,7 +235,11 @@ public class RaceManager : NetworkBehaviour
         startRaceRoutine = null;
         if (session != null)
         {
-            session.StartRace();
+            SetGameplayUiActive(true);
+            if (!session.StartRace())
+            {
+                SetGameplayUiActive(false);
+            }
         }
     }
 
@@ -351,6 +365,11 @@ public class RaceManager : NetworkBehaviour
         {
             inGameCanvas.SetActive(active);
         }
+
+        if (active)
+        {
+            RenderCountdown(latestCountdownValue);
+        }
     }
 
     private static void SetPreGamePanel(GameObject panel, bool active)
@@ -404,12 +423,29 @@ public class RaceManager : NetworkBehaviour
 
     private void HandleCountdownChanged(int value)
     {
+        latestCountdownValue = value;
         networkCountdownActive = value >= 0;
         if (networkCountdownActive)
         {
             SetGameplayUiActive(true);
+            RenderCountdown(value);
             ClearPreRaceStatus();
         }
+    }
+
+    private void RenderCountdown(int value)
+    {
+        if (countdownText == null)
+        {
+            return;
+        }
+
+        countdownText.text = value > 0
+            ? value.ToString()
+            : value == 0
+                ? "GO!"
+                : string.Empty;
+        countdownText.gameObject.SetActive(value >= 0);
     }
 
     private static bool IsRaceStartedOnNetwork()

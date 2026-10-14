@@ -101,8 +101,8 @@ public class PlayerLap : NetworkBehaviour
         LapCompletedOnServer?.Invoke();
         Debug.Log($"[PlayerLap] LAP BERTAMBAH menjadi {lapsCompleted.Value} pada server.", this);
 
-        // Cek apakah pemain INI sudah menyelesaikan 3 Lap
-        if (lapsCompleted.Value >= RaceManager.Instance.totalLaps)
+        // Pemain mendapat satu lap tambahan setelah mencapai target lap utama.
+        if (lapsCompleted.Value > RaceManager.Instance.totalLaps)
         {
             isFinished = true;
             StopThisCarClientRpc(); // Hentikan mobil pemain ini saja
