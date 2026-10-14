@@ -191,7 +191,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 3067538661
   InScenePlacedSourceGlobalObjectIdHash: 0
@@ -264,8 +264,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f6c0be61502bb534f922ebb746851216, type: 3}
-  m_Name: ''
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Components::Unity.Netcode.Components.NetworkRigidbody
+  ShowTopMostFoldoutHeaderGroup: 1
   NetworkRigidbodyBaseExpanded: 0
   UseRigidBodyForMotion: 1
   AutoUpdateKinematicState: 0
@@ -408,7 +409,9 @@ MonoBehaviour:
   acceleration: 15
   maxSpeed: 100
   steering: 400
+  steeringResponseSpeed: 3
   friction: 15
+  coastDeceleration: 3.5
   brakeStrength: 10
   driftFriction: 0.75
   driftSteeringMultiplier: 1.35

@@ -10,7 +10,9 @@ namespace PBalap.Vehicle
         [SerializeField] private float acceleration = 12f;
         [SerializeField] private float maxSpeed = 18f;
         [SerializeField] private float steering = 90f;
+        [SerializeField] private float steeringResponseSpeed = 5f;
         [SerializeField] private float friction = 4f;
+        [SerializeField] private float coastDeceleration = 3.5f;
         [SerializeField] private float brakeStrength = 30f;
         [SerializeField] private float driftFriction = 0.75f;
         [SerializeField] private float driftSteeringMultiplier = 1.35f;
@@ -42,6 +44,7 @@ namespace PBalap.Vehicle
         [SerializeField] private float cameraRotationSmoothSpeed = 10f;
 
         private float steeringInput;
+        private float targetSteeringInput;
         private float throttleInput;
         private bool brakeInput;
         private float wheelSpinAngle;
@@ -185,6 +188,11 @@ namespace PBalap.Vehicle
                 return;
             }
 
+            steeringInput = Mathf.MoveTowards(
+                steeringInput,
+                targetSteeringInput,
+                Mathf.Max(steeringResponseSpeed, 0f) * Time.fixedDeltaTime);
+            UpdateDriftState();
             ApplyArcadeMovement();
             ApplySteering();
         }
@@ -204,15 +212,18 @@ namespace PBalap.Vehicle
 
         public void SetInput(float steering, float throttle, bool brake)
         {
-            steeringInput = Mathf.Clamp(steering, -1f, 1f);
+            targetSteeringInput = Mathf.Clamp(steering, -1f, 1f);
             throttleInput = Mathf.Clamp(throttle, -1f, 1f);
             brakeInput = brake;
 
-            if (Mathf.Abs(steeringInput) > 0.01f && !brakeInput)
+            if (Mathf.Abs(targetSteeringInput) > 0.01f && !brakeInput)
             {
                 driftArmed = true;
             }
+        }
 
+        private void UpdateDriftState()
+        {
             bool wasDrifting = isDrifting;
             isDrifting = driftArmed && brakeInput && Mathf.Abs(steeringInput) > 0.01f;
             if (Mathf.Abs(steeringInput) <= 0.01f)
@@ -245,7 +256,11 @@ namespace PBalap.Vehicle
 
             float accelerationMultiplier = driftBoostTimer > 0f ? driftBoostMultiplier : 1f;
             float currentAcceleration = acceleration * accelerationMultiplier;
-            float forceLimit = isBraking ? brakeStrength : currentAcceleration;
+            float forceLimit = isBraking
+                ? brakeStrength
+                : Mathf.Abs(throttleInput) > 0.01f
+                    ? currentAcceleration
+                    : Mathf.Max(coastDeceleration, 0f);
             float maximumSpeedChange = forceLimit * Time.fixedDeltaTime;
             float speedChange = Mathf.Clamp(
                 speedDifference,
@@ -376,6 +391,7 @@ namespace PBalap.Vehicle
         private void ResetInputState()
         {
             steeringInput = 0f;
+            targetSteeringInput = 0f;
             throttleInput = 0f;
             brakeInput = false;
             driftArmed = false;
