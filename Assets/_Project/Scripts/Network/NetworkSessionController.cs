@@ -465,6 +465,61 @@ namespace PBalap.Network
             return true;
         }
 
+        public bool RestartRace()
+        {
+            if (networkManager == null || !networkManager.IsHost || !hostingSession)
+            {
+                SetNotice("Hanya Host yang dapat mengulang balapan.");
+                return false;
+            }
+
+            if (!raceStarted || raceStartInProgress)
+            {
+                SetNotice("Balapan belum selesai.");
+                return false;
+            }
+
+            foreach (NetworkClient client in networkManager.ConnectedClientsList)
+            {
+                NetworkKartPlayer kart = client.PlayerObject == null
+                    ? null
+                    : client.PlayerObject.GetComponent<NetworkKartPlayer>();
+                if (kart == null)
+                {
+                    continue;
+                }
+
+                kart.SetCanDriveOnServer(false);
+                kart.transform.SetPositionAndRotation(
+                    SpawnPositions[GetSpawnSlot(client.ClientId)],
+                    Quaternion.identity);
+
+                Rigidbody body = kart.GetComponent<Rigidbody>();
+                if (body != null)
+                {
+                    body.linearVelocity = Vector3.zero;
+                    body.angularVelocity = Vector3.zero;
+                }
+
+                PlayerLap playerLap = kart.GetComponent<PlayerLap>();
+                if (playerLap != null)
+                {
+                    playerLap.ResetRaceOnServer();
+                }
+            }
+
+            raceStarted = false;
+            SetNotice("Balapan di-reset. Host dapat memulai countdown.");
+            return StartRace();
+        }
+
+        private int GetSpawnSlot(ulong clientId)
+        {
+            return spawnSlotByClientId.TryGetValue(clientId, out int spawnSlot)
+                ? spawnSlot
+                : 0;
+        }
+
         private IEnumerator StartRaceCountdownRoutine(
             NetworkKartPlayer countdownBroadcaster,
             int countdownDuration)

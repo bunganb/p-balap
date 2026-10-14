@@ -34,6 +34,7 @@ public class RaceManager : NetworkBehaviour
     private TextMeshProUGUI hostJoinCodeText;
     private bool clientPanelRequested;
     private Coroutine startRaceRoutine;
+    private bool raceFinished;
 
     private void Awake()
     {
@@ -261,7 +262,53 @@ public class RaceManager : NetworkBehaviour
 
     private void HandleSessionStateChanged(NetworkSessionState state)
     {
+        if (state == NetworkSessionState.Disconnected
+            || state == NetworkSessionState.Hosting
+            || state == NetworkSessionState.Joined)
+        {
+            raceFinished = false;
+        }
+
         SyncPreGameUi();
+    }
+
+    private void HandleRaceFinishedInput()
+    {
+        if (session == null)
+        {
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (session.IsHostingSession)
+            {
+                session.CloseRoom();
+            }
+            else if (session.IsConnected)
+            {
+                session.LeaveRoom();
+            }
+
+            raceFinished = false;
+            SetGameplayUiActive(false);
+            return;
+        }
+
+        if (session.IsHostingSession
+            && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+        {
+            raceFinished = false;
+            if (raceOverText != null)
+            {
+                raceOverText.text = "";
+            }
+            SetGameplayUiActive(true);
+            if (!session.RestartRace())
+            {
+                raceFinished = true;
+            }
+        }
     }
 
     private void SyncPreGameUi()
@@ -384,6 +431,12 @@ public class RaceManager : NetworkBehaviour
     {
         SyncPreGameUi();
 
+        if (raceFinished)
+        {
+            HandleRaceFinishedInput();
+            return;
+        }
+
         if (raceOverText == null)
         {
             return;
@@ -427,6 +480,11 @@ public class RaceManager : NetworkBehaviour
         networkCountdownActive = value >= 0;
         if (networkCountdownActive)
         {
+            raceFinished = false;
+            if (raceOverText != null)
+            {
+                raceOverText.text = "";
+            }
             SetGameplayUiActive(true);
             RenderCountdown(value);
             ClearPreRaceStatus();
@@ -547,10 +605,12 @@ public class RaceManager : NetworkBehaviour
     [ClientRpc]
     private void EndRaceClientRpc()
     {
+        raceFinished = true;
         if (raceOverText != null)
         {
-            // Ganti teks saat semua orang sudah masuk garis finish
-            raceOverText.text = "RACE OVER!\nALL PLAYERS FINISHED!";
+            raceOverText.text = session != null && session.IsHostingSession
+                ? "RACE OVER!\nENTER: RESTART\nESC: MENU"
+                : "RACE OVER!\nESC: MENU";
         }
     }
 }

@@ -112,6 +112,18 @@ public class PlayerLap : NetworkBehaviour
         RaceManager.Instance.CheckRaceCompletion();
     }
 
+    public void ResetRaceOnServer()
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        lapsCompleted.Value = 0;
+        isFinished = false;
+        lastLapTime = 0f;
+    }
+
     [ClientRpc]
     private void StopThisCarClientRpc()
     {
