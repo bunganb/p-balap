@@ -105,6 +105,8 @@ public class RaceManager : NetworkBehaviour
         Button joinButton = root.Find("#1 - select/join")?.GetComponent<Button>();
         Button startButton = root.Find("#2 - Host/Start-btn")?.GetComponent<Button>();
         Button copyButton = root.Find("#2 - Host/copy-btn")?.GetComponent<Button>();
+        Button hostBackButton = root.Find("#2 - Host/x-button")?.GetComponent<Button>();
+        Button clientBackButton = root.Find("#3 - Client/x-button")?.GetComponent<Button>();
         joinCodeInput = root.Find("#3 - Client/inputCode")?.GetComponent<TMP_InputField>();
 
         if (hostButton != null)
@@ -125,6 +127,16 @@ public class RaceManager : NetworkBehaviour
         if (copyButton != null)
         {
             copyButton.onClick.AddListener(CopyJoinCode);
+        }
+
+        if (hostBackButton != null)
+        {
+            hostBackButton.onClick.AddListener(ReturnToSelection);
+        }
+
+        if (clientBackButton != null)
+        {
+            clientBackButton.onClick.AddListener(ReturnToSelection);
         }
 
         if (joinCodeInput != null)
@@ -152,6 +164,34 @@ public class RaceManager : NetworkBehaviour
         SetPreGamePanel(selectionPanel, false);
         SetPreGamePanel(hostPanel, false);
         SetPreGamePanel(clientPanel, true);
+    }
+
+    private void ReturnToSelection()
+    {
+        if (startRaceRoutine != null)
+        {
+            StopCoroutine(startRaceRoutine);
+            startRaceRoutine = null;
+        }
+
+        if (session != null)
+        {
+            if (session.IsHostingSession)
+            {
+                session.CloseRoom();
+            }
+            else if (session.IsConnected)
+            {
+                session.LeaveRoom();
+            }
+        }
+
+        clientPanelRequested = false;
+        SetGameplayUiActive(false);
+        SetPreGamePanel(selectionPanel, true);
+        SetPreGamePanel(hostPanel, false);
+        SetPreGamePanel(clientPanel, false);
+        UpdateClientPanel(false);
     }
 
     private void JoinRoom(string _)
