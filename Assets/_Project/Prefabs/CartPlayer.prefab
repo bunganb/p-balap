@@ -157,6 +157,7 @@ GameObject:
   - component: {fileID: 5004514833349580930}
   - component: {fileID: 6052620553452920351}
   - component: {fileID: 6683534680532996116}
+  - component: {fileID: -3344466369643334114}
   m_Layer: 0
   m_Name: CartPlayer
   m_TagString: Untagged
@@ -193,7 +194,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3067538661
+  GlobalObjectIdHash: 3265682458
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -409,7 +410,7 @@ MonoBehaviour:
   acceleration: 15
   maxSpeed: 100
   steering: 400
-  steeringResponseSpeed: 3
+  steeringResponseSpeed: 7
   friction: 15
   coastDeceleration: 3.5
   brakeStrength: 10
@@ -474,6 +475,24 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 2
   m_Center: {x: 0, y: 0.5, z: 0}
+--- !u!114 &-3344466369643334114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8221354507439611581}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f835f5de7ae7a5541bbc83d846c5442a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerLap
+  ShowTopMostFoldoutHeaderGroup: 1
+  lapsCompleted:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!1 &9028681150728702177
 GameObject:
   m_ObjectHideFlags: 0

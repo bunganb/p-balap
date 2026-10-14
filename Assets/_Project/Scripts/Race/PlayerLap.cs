@@ -15,6 +15,7 @@ public class PlayerLap : NetworkBehaviour
 
     private float lastLapTime;
     private bool isFinished = false; // Mencegah lap bertambah terus saat sudah selesai
+    private int nextCheckpointIndex;
 
     public override void OnNetworkSpawn()
     {
@@ -66,6 +67,75 @@ public class PlayerLap : NetworkBehaviour
             return;
         }
 
+        CompleteLapAtFinishLineOnServer();
+    }
+
+    public void OnCheckpointPassed(int checkpointIndex)
+    {
+        if (!IsServer)
+        {
+            if (IsOwner && IsSpawned)
+            {
+                RequestCheckpointServerRpc(checkpointIndex);
+            }
+
+            return;
+        }
+
+        RegisterCheckpointOnServer(checkpointIndex);
+    }
+
+    [ServerRpc]
+    private void RequestCheckpointServerRpc(
+        int checkpointIndex,
+        ServerRpcParams serverRpcParams = default)
+    {
+        if (serverRpcParams.Receive.SenderClientId != OwnerClientId)
+        {
+            Debug.LogWarning($"[PlayerLap] Checkpoint RPC ditolak: sender={serverRpcParams.Receive.SenderClientId}, "
+                + $"owner={OwnerClientId}", this);
+            return;
+        }
+
+        RegisterCheckpointOnServer(checkpointIndex);
+    }
+
+    private void RegisterCheckpointOnServer(int checkpointIndex)
+    {
+        if (!IsServer || isFinished)
+        {
+            return;
+        }
+
+        RaceCheckpoint[] checkpoints = RaceCheckpoint.GetOrderedCheckpoints();
+        if (checkpoints.Length == 0)
+        {
+            Debug.LogWarning("[PlayerLap] Tidak ada RaceCheckpoint di scene.", this);
+            return;
+        }
+
+        if (checkpointIndex != nextCheckpointIndex)
+        {
+            Debug.Log($"[PlayerLap] Checkpoint diabaikan: menerima {checkpointIndex + 1}, "
+                + $"menunggu {nextCheckpointIndex + 1}.", this);
+            return;
+        }
+
+        nextCheckpointIndex++;
+        Debug.Log($"[PlayerLap] Checkpoint {nextCheckpointIndex}/{checkpoints.Length} dilewati.", this);
+    }
+
+    private void CompleteLapAtFinishLineOnServer()
+    {
+        RaceCheckpoint[] checkpoints = RaceCheckpoint.GetOrderedCheckpoints();
+        if (checkpoints.Length > 0 && nextCheckpointIndex < checkpoints.Length)
+        {
+            Debug.Log($"[PlayerLap] Finish line diabaikan: checkpoint belum lengkap "
+                + $"({nextCheckpointIndex}/{checkpoints.Length}).", this);
+            return;
+        }
+
+        nextCheckpointIndex = 0;
         CompleteLapOnServer();
     }
 
@@ -79,7 +149,7 @@ public class PlayerLap : NetworkBehaviour
             return;
         }
 
-        CompleteLapOnServer();
+        CompleteLapAtFinishLineOnServer();
     }
 
     private void CompleteLapOnServer()
@@ -122,6 +192,7 @@ public class PlayerLap : NetworkBehaviour
         lapsCompleted.Value = 0;
         isFinished = false;
         lastLapTime = 0f;
+        nextCheckpointIndex = 0;
     }
 
     [ClientRpc]

@@ -553,6 +553,11 @@ public class RaceManager : NetworkBehaviour
     // FUNGSI BARU: Dipanggil dari PlayerLap saat 1 pemain berhasil mencapai lap 3 duluan
     public void ShowWaitingUI()
     {
+        if (session != null && session.ConnectedPlayerCount <= 1)
+        {
+            return;
+        }
+
         if (raceOverText != null)
         {
             showingPreRaceStatus = false;
@@ -564,6 +569,13 @@ public class RaceManager : NetworkBehaviour
     public void CheckRaceCompletion()
     {
         if (!IsServer) return;
+
+        // A solo room has no other finishers to wait for.
+        if (session != null && session.ConnectedPlayerCount == 1)
+        {
+            EndRaceClientRpc();
+            return;
+        }
 
         PlayerLap[] allPlayers = FindObjectsByType<PlayerLap>();
         bool allFinished = true;
