@@ -1,9 +1,12 @@
+using System;
 using UnityEngine;
 using Unity.Netcode;
 using PBalap.Vehicle; // Wajib ditambahkan agar bisa mengambil komponen kontroler mobil
 
 public class PlayerLap : NetworkBehaviour
 {
+    public static event Action LapCompletedOnServer;
+
     public NetworkVariable<int> lapsCompleted = new NetworkVariable<int>(
         0, 
         NetworkVariableReadPermission.Everyone, 
@@ -12,10 +15,16 @@ public class PlayerLap : NetworkBehaviour
 
     private float lastLapTime;
     private bool isFinished = false; // Mencegah lap bertambah terus saat sudah selesai
+    private int nextCheckpointIndex;
 
     public override void OnNetworkSpawn()
     {
         lapsCompleted.OnValueChanged += OnLapChanged;
+        if (IsServer)
+        {
+            PrepareOpeningLapOnServer();
+        }
+
         UpdateLapUI();
         Debug.Log($"[PlayerLap] Spawned object={name}, owner={OwnerClientId}, "
             + $"isServer={IsServer}, isOwner={IsOwner}, laps={lapsCompleted.Value}", this);
@@ -30,7 +39,11 @@ public class PlayerLap : NetworkBehaviour
     {
         Debug.Log($"[PlayerLap] Lap berubah {previousValue} -> {newValue}, "
             + $"owner={OwnerClientId}, isOwner={IsOwner}", this);
-        UpdateLapUI();
+        if (RaceManager.Instance != null
+            && newValue <= RaceManager.Instance.totalLaps)
+        {
+            UpdateLapUI();
+        }
     }
 
     private void UpdateLapUI()
@@ -63,6 +76,75 @@ public class PlayerLap : NetworkBehaviour
             return;
         }
 
+        CompleteLapAtFinishLineOnServer();
+    }
+
+    public void OnCheckpointPassed(int checkpointIndex)
+    {
+        if (!IsServer)
+        {
+            if (IsOwner && IsSpawned)
+            {
+                RequestCheckpointServerRpc(checkpointIndex);
+            }
+
+            return;
+        }
+
+        RegisterCheckpointOnServer(checkpointIndex);
+    }
+
+    [ServerRpc]
+    private void RequestCheckpointServerRpc(
+        int checkpointIndex,
+        ServerRpcParams serverRpcParams = default)
+    {
+        if (serverRpcParams.Receive.SenderClientId != OwnerClientId)
+        {
+            Debug.LogWarning($"[PlayerLap] Checkpoint RPC ditolak: sender={serverRpcParams.Receive.SenderClientId}, "
+                + $"owner={OwnerClientId}", this);
+            return;
+        }
+
+        RegisterCheckpointOnServer(checkpointIndex);
+    }
+
+    private void RegisterCheckpointOnServer(int checkpointIndex)
+    {
+        if (!IsServer || isFinished)
+        {
+            return;
+        }
+
+        RaceCheckpoint[] checkpoints = RaceCheckpoint.GetOrderedCheckpoints();
+        if (checkpoints.Length == 0)
+        {
+            Debug.LogWarning("[PlayerLap] Tidak ada RaceCheckpoint di scene.", this);
+            return;
+        }
+
+        if (checkpointIndex != nextCheckpointIndex)
+        {
+            Debug.Log($"[PlayerLap] Checkpoint diabaikan: menerima {checkpointIndex + 1}, "
+                + $"menunggu {nextCheckpointIndex + 1}.", this);
+            return;
+        }
+
+        nextCheckpointIndex++;
+        Debug.Log($"[PlayerLap] Checkpoint {nextCheckpointIndex}/{checkpoints.Length} dilewati.", this);
+    }
+
+    private void CompleteLapAtFinishLineOnServer()
+    {
+        RaceCheckpoint[] checkpoints = RaceCheckpoint.GetOrderedCheckpoints();
+        if (checkpoints.Length > 0 && nextCheckpointIndex < checkpoints.Length)
+        {
+            Debug.Log($"[PlayerLap] Finish line diabaikan: checkpoint belum lengkap "
+                + $"({nextCheckpointIndex}/{checkpoints.Length}).", this);
+            return;
+        }
+
+        nextCheckpointIndex = 0;
         CompleteLapOnServer();
     }
 
@@ -76,7 +158,7 @@ public class PlayerLap : NetworkBehaviour
             return;
         }
 
-        CompleteLapOnServer();
+        CompleteLapAtFinishLineOnServer();
     }
 
     private void CompleteLapOnServer()
@@ -95,10 +177,10 @@ public class PlayerLap : NetworkBehaviour
 
         lastLapTime = Time.time;
         lapsCompleted.Value++;
+        LapCompletedOnServer?.Invoke();
         Debug.Log($"[PlayerLap] LAP BERTAMBAH menjadi {lapsCompleted.Value} pada server.", this);
 
-        // Cek apakah pemain INI sudah menyelesaikan 3 Lap
-        if (lapsCompleted.Value >= RaceManager.Instance.totalLaps)
+        if (lapsCompleted.Value > RaceManager.Instance.totalLaps)
         {
             isFinished = true;
             StopThisCarClientRpc(); // Hentikan mobil pemain ini saja
@@ -106,6 +188,24 @@ public class PlayerLap : NetworkBehaviour
 
         // Selalu lapor ke manager untuk mengecek apakah SEMUA pemain sudah selesai
         RaceManager.Instance.CheckRaceCompletion();
+    }
+
+    public void ResetRaceOnServer()
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        lapsCompleted.Value = 0;
+        isFinished = false;
+        lastLapTime = 0f;
+        PrepareOpeningLapOnServer();
+    }
+
+    private void PrepareOpeningLapOnServer()
+    {
+        nextCheckpointIndex = RaceCheckpoint.GetOrderedCheckpoints().Length;
     }
 
     [ClientRpc]
