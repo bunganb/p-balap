@@ -20,6 +20,11 @@ public class PlayerLap : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         lapsCompleted.OnValueChanged += OnLapChanged;
+        if (IsServer)
+        {
+            PrepareOpeningLapOnServer();
+        }
+
         UpdateLapUI();
         Debug.Log($"[PlayerLap] Spawned object={name}, owner={OwnerClientId}, "
             + $"isServer={IsServer}, isOwner={IsOwner}, laps={lapsCompleted.Value}", this);
@@ -34,7 +39,11 @@ public class PlayerLap : NetworkBehaviour
     {
         Debug.Log($"[PlayerLap] Lap berubah {previousValue} -> {newValue}, "
             + $"owner={OwnerClientId}, isOwner={IsOwner}", this);
-        UpdateLapUI();
+        if (RaceManager.Instance != null
+            && newValue <= RaceManager.Instance.totalLaps)
+        {
+            UpdateLapUI();
+        }
     }
 
     private void UpdateLapUI()
@@ -171,7 +180,6 @@ public class PlayerLap : NetworkBehaviour
         LapCompletedOnServer?.Invoke();
         Debug.Log($"[PlayerLap] LAP BERTAMBAH menjadi {lapsCompleted.Value} pada server.", this);
 
-        // Pemain mendapat satu lap tambahan setelah mencapai target lap utama.
         if (lapsCompleted.Value > RaceManager.Instance.totalLaps)
         {
             isFinished = true;
@@ -192,7 +200,12 @@ public class PlayerLap : NetworkBehaviour
         lapsCompleted.Value = 0;
         isFinished = false;
         lastLapTime = 0f;
-        nextCheckpointIndex = 0;
+        PrepareOpeningLapOnServer();
+    }
+
+    private void PrepareOpeningLapOnServer()
+    {
+        nextCheckpointIndex = RaceCheckpoint.GetOrderedCheckpoints().Length;
     }
 
     [ClientRpc]

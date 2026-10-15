@@ -570,13 +570,6 @@ public class RaceManager : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        // A solo room has no other finishers to wait for.
-        if (session != null && session.ConnectedPlayerCount == 1)
-        {
-            EndRaceClientRpc();
-            return;
-        }
-
         PlayerLap[] allPlayers = FindObjectsByType<PlayerLap>();
         bool allFinished = true;
 
@@ -618,6 +611,9 @@ public class RaceManager : NetworkBehaviour
     private void EndRaceClientRpc()
     {
         raceFinished = true;
+        showingPreRaceStatus = false;
+        SetGameplayUiActive(true);
+        RenderCountdown(-1);
         if (raceOverText != null)
         {
             raceOverText.text = session != null && session.IsHostingSession
